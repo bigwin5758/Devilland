@@ -1,0 +1,2714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Devil land — Base Chain</title>
+<style>
+  :root {
+    --red: #ff3333;
+    --dark-red: #cc1111;
+    --bg: #0d0010;
+    --surface: #1a001f;
+    --border: #ff333344;
+    --gold: #ffd700;
+    --blue: #0052ff;
+    --blue-light: #3377ff;
+    --text: #ffeeff;
+    --muted: #aa88aa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: var(--bg);
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+  .screen.active { display: flex; }
+
+  /* ── CONNECT SCREEN ── */
+  #screen-connect { gap: 28px; }
+  .logo-wrap { text-align: center; }
+  .logo-title {
+    font-size: clamp(32px, 8vw, 56px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, #ff3333, #ff8800, #ff3333);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: none;
+    animation: pulse-title 2s ease-in-out infinite;
+  }
+  @keyframes pulse-title {
+    0%,100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+  }
+  .logo-sub { color: var(--muted); font-size: 13px; letter-spacing: 3px; margin-top: 6px; }
+  .chain-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #0052ff22; border: 1px solid #0052ff88;
+    padding: 8px 18px; border-radius: 20px;
+    color: #6699ff; font-size: 13px; letter-spacing: 1px;
+  }
+  .chain-dot { width: 8px; height: 8px; background: #0052ff; border-radius: 50%; animation: blink 1.2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%; max-width: 380px;
+  }
+  .card-title { font-size: 12px; letter-spacing: 2px; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; }
+
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .feature-list li { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
+  .feature-list li span:first-child { font-size: 20px; }
+  .feature-list li strong { color: var(--text); }
+
+  .btn {
+    width: 100%; max-width: 380px;
+    padding: 16px;
+    border: none; border-radius: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 15px; font-weight: 700; letter-spacing: 2px;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: linear-gradient(135deg, #ff3333, #cc1111); color: #fff; }
+  .btn-primary:hover { background: linear-gradient(135deg, #ff5555, #ee2222); }
+  .btn-base { background: linear-gradient(135deg, #0052ff, #0033cc); color: #fff; }
+  .btn-base:hover { background: linear-gradient(135deg, #2266ff, #0044ee); }
+  .btn-gold { background: linear-gradient(135deg, #ffd700, #cc9900); color: #000; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-sm { padding: 10px 16px; font-size: 13px; width: auto; max-width: none; }
+
+  /* ── HUD ── */
+  #screen-game { justify-content: flex-start; padding: 0; }
+  #hud {
+    width: 100%; max-width: 700px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: #0d0010ee;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .hud-section { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .lives-display { display: flex; gap: 4px; }
+  .life-heart { font-size: 18px; transition: all 0.3s; }
+  .life-heart.lost { filter: grayscale(1) opacity(0.3); }
+  .wallet-addr { color: var(--muted); font-size: 11px; }
+
+  /* ── GAME CANVAS WRAP ── */
+  #game-wrap {
+    width: 100%; max-width: 700px;
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  #canvas {
+    width: 100%;
+    max-width: 700px;
+    height: auto;
+    display: block;
+    touch-action: none;
+  }
+
+  /* ── TOUCH CONTROLS ── */
+  #touch-controls {
+    width: 100%; max-width: 700px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px;
+    background: #0d0010ee;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .dpad { display: flex; gap: 8px; }
+  .touch-btn {
+    width: 56px; height: 56px;
+    background: #ff333322;
+    border: 2px solid #ff333355;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background 0.1s;
+    touch-action: none;
+  }
+  .touch-btn.pressed { background: #ff333355; border-color: var(--red); }
+  .jump-btn {
+    width: 72px; height: 72px;
+    background: #ff330033;
+    border: 2px solid var(--red);
+    border-radius: 50%;
+    font-size: 28px;
+  }
+
+  /* ── OVERLAY MODALS ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: #0d001099;
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .overlay.active { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: 100%; max-width: 360px;
+    display: flex; flex-direction: column; gap: 16px;
+    text-align: center;
+  }
+  .modal-icon { font-size: 48px; }
+  .modal h2 { font-size: 22px; letter-spacing: 2px; }
+  .modal p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .modal-row { display: flex; gap: 10px; }
+  .modal-row .btn { flex: 1; }
+
+  /* ── CHECKIN SCREEN ── */
+  #screen-hub { gap: 20px; }
+  .hub-header { text-align: center; }
+  .hub-header h2 { font-size: 22px; letter-spacing: 3px; }
+  .hub-header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; width: 100%; max-width: 380px;
+  }
+  .stat-box {
+    background: #ffffff08;
+    border: 1px solid #ffffff11;
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+  }
+  .stat-box .val { font-size: 24px; font-weight: 700; color: var(--red); }
+  .stat-box .lbl { font-size: 11px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
+
+  .checkin-box {
+    width: 100%; max-width: 380px;
+    background: #ffd70011;
+    border: 1px solid #ffd70044;
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .checkin-box h3 { font-size: 14px; letter-spacing: 2px; color: var(--gold); }
+  .checkin-streak { font-size: 32px; }
+  .checkin-status { font-size: 12px; color: var(--muted); }
+
+  /* ── NFT MINT BOX ── */
+  .nft-box {
+    width: 100%; max-width: 380px;
+    background: #ff330011;
+    border: 1px solid #ff330044;
+    border-radius: 14px;
+    padding: 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .nft-preview {
+    background: linear-gradient(135deg, #1a001f, #2a0030);
+    border: 1px solid #ff333333;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    font-size: 48px;
+  }
+  .nft-title { font-size: 15px; letter-spacing: 1px; }
+  .nft-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .gas-note { font-size: 11px; color: #88aa88; display: flex; align-items: center; gap: 6px; justify-content: center; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: #222; border: 1px solid #444;
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; color: #fff;
+    z-index: 200; opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ── LOADING SPINNER ── */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid #ffffff33;
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── GAME MESSAGE ── */
+  #game-msg {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--red);
+    font-size: clamp(18px, 5vw, 28px);
+    font-weight: 900; letter-spacing: 3px;
+    text-shadow: 0 0 20px var(--red);
+    text-align: center;
+    pointer-events: none;
+    opacity: 0; transition: opacity 0.3s;
+    z-index: 10;
+    white-space: nowrap;
+  }
+  #game-msg.show { opacity: 1; }
+
+  @media (max-width: 480px) {
+    .touch-btn { width: 50px; height: 50px; font-size: 20px; }
+    .jump-btn { width: 64px; height: 64px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     SCREEN 1: CONNECT WALLET
+══════════════════════════════════════ -->
+<div id="screen-connect" class="screen active">
+  <div class="logo-wrap">
+    <div class="logo-title">Devil land</div>
+    <div class="logo-sub">BASE GAMEFI</div>
+  </div>
+
+  <div class="chain-badge">
+    <div class="chain-dot"></div>
+    BASE MAINNET
+  </div>
+
+  <div class="card">
+    <div class="card-title">Game Features</div>
+    <ul class="feature-list">
+      <li><span>💀</span><span>Platform with <strong>hidden trap</strong> — 100 levels</span></li>
+      <li><span>❤️</span><span><strong>3 Lives</strong> per session (free NFT mint)</span></li>
+      <li><span>📅</span><span><strong>Daily Check-in</strong> onchain (gas fee only)</span></li>
+      <li><span>🔗</span><span>100% <strong>onchain</strong> on Base blockchain</span></li>
+    </ul>
+  </div>
+
+  <button class="btn btn-base" id="btn-connect">
+    <span>🔵</span> CONNECT WALLET
+  </button>
+
+  <div style="font-size:11px;color:var(--muted);text-align:center;max-width:300px;line-height:1.6">
+    Support MetaMask, Coinbase Wallet, and other EVM wallet.
+    Make sure it is connected to <strong style="color:#6699ff">Base Mainnet</strong>.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 2: HUB (Checkin + Mint)
+══════════════════════════════════════ -->
+<div id="screen-hub" class="screen">
+  <div class="hub-header">
+    <h2>😈 Devil HUB</h2>
+    <p id="hub-wallet" class="wallet-addr">0x0000...0000</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="val" id="stat-deaths">0</div>
+      <div class="lbl">Die total</div>
+    </div>
+    <div class="stat-box">
+      <div class="val" id="stat-streak">0</div>
+      <div class="lbl">DAYS STREAK</div>
+    </div>
+    <div class="stat-box">
+      <div class="val" id="stat-sessions">0</div>
+      <div class="lbl">PLAY SESSION</div>
+    </div>
+    <div class="stat-box">
+      <div class="val" id="stat-levels">0</div>
+      <div class="lbl">LEVEL CLEAR</div>
+    </div>
+  </div>
+
+  <!-- Daily Check-in -->
+  <div class="checkin-box">
+    <h3>📅 DAILY CHECK-IN</h3>
+    <div class="checkin-streak" id="checkin-icon">🔥</div>
+    <div id="checkin-streak-text" style="font-size:14px;color:var(--gold)">Streak: 0 days</div>
+    <div class="checkin-status" id="checkin-status">Not checked in today</div>
+    <button class="btn btn-gold" id="btn-checkin">
+      <span>✅</span> CHECK-IN NOW
+    </button>
+  </div>
+
+  <!-- NFT Mint -->
+  <div class="nft-box">
+    <div class="nft-preview">😈<br><span style="font-size:14px;color:var(--muted)">Life Pass NFT</span></div>
+    <div class="nft-title">🎟 MINT LIFE PASS NFT</div>
+    <div class="nft-desc">
+      Get <strong style="color:#ff6666">3 lives</strong> for playing.<br>
+      This NFT is free — you only pay the Base network gas fee..
+    </div>
+    <div class="gas-note">⛽ ~0.00001 ETH gas fee (Base network)</div>
+    <button class="btn btn-primary" id="btn-mint">
+      <span>🎟</span> MINT & PLAY (FREE)
+    </button>
+  </div>
+
+  <button class="btn btn-outline btn-sm" id="btn-disconnect" style="max-width:380px">
+    Disconnect Wallet
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 3: GAME
+══════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-section">
+      <div class="lives-display" id="lives-display">
+        <span class="life-heart">❤️</span>
+        <span class="life-heart">❤️</span>
+        <span class="life-heart">❤️</span>
+      </div>
+    </div>
+    <div class="hud-section" style="flex-direction:column;align-items:center;gap:2px">
+      <span id="hud-level" style="font-size:13px;color:var(--red)">LEVEL 1</span>
+      <span id="hud-timer" style="font-size:11px;color:var(--muted)">0.0s</span>
+    </div>
+    <div class="hud-section" style="flex-direction:column;align-items:flex-end;gap:2px">
+      <span id="hud-deaths" style="font-size:11px;color:var(--muted)">💀 0</span>
+      <span id="hud-wallet-short" class="wallet-addr"></span>
+    </div>
+  </div>
+
+  <!-- Canvas + message -->
+  <div id="game-wrap">
+    <canvas id="canvas" width="700" height="420"></canvas>
+    <div id="game-msg"></div>
+  </div>
+
+  <!-- Touch controls -->
+  <div id="touch-controls">
+    <div class="dpad">
+      <div class="touch-btn" id="btn-left">◀</div>
+      <div class="touch-btn" id="btn-right">▶</div>
+    </div>
+    <div class="touch-btn jump-btn" id="btn-jump">↑</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     OVERLAYS
+══════════════════════════════════════ -->
+<!-- Game Over overlay -->
+<div class="overlay" id="overlay-gameover">
+  <div class="modal">
+    <div class="modal-icon">💀</div>
+    <h2>life runs out</h2>
+    <p>You've died too many times.<br>Mint <strong>Life Pass NFT</strong> to get 3 more lives.<br><span style="color:#88aa88;font-size:12px">Free — gas fee only</span></p>
+    <button class="btn btn-primary" id="btn-mint-again"><span>🎟</span> MINT AGAIN</button>
+    <button class="btn btn-outline" id="btn-gameover-hub">Back to Hub</button>
+  </div>
+</div>
+
+<!-- Connecting overlay -->
+<div class="overlay" id="overlay-loading">
+  <div class="modal" style="gap:20px">
+    <div class="modal-icon" id="loading-icon">🔵</div>
+    <h2 id="loading-title">Connecting</h2>
+    <p id="loading-desc">open your wallet...</p>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<!-- Win overlay -->
+<div class="overlay" id="overlay-win">
+  <div class="modal">
+    <div class="modal-icon">🏆</div>
+    <h2>YOU WIN!</h2>
+    <p id="win-stats">Congratulations! You have successfully completed all levels.</p>
+    <button class="btn btn-gold" id="btn-play-again">⚔ Play again</button>
+    <button class="btn btn-outline" id="btn-win-hub">Back to Hub</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════ -->
+<script>
+// ═══════════════════════════════════════
+//  WEB3 STATE
+// ═══════════════════════════════════════
+const BASE_CHAIN_ID = '0x2105'; // Base Mainnet = 8453
+let walletAddress = null;
+let lives = 0;
+let totalDeaths = 0;
+let sessionsPlayed = 0;
+let levelsCleared = 0;
+let checkInStreak = 0;
+let lastCheckIn = null; // date string YYYY-MM-DD
+let gameStartTime = null;
+
+// Persist stats to localStorage (in real app this would be onchain)
+function saveStats() {
+  localStorage.setItem('li_deaths', totalDeaths);
+  localStorage.setItem('li_sessions', sessionsPlayed);
+  localStorage.setItem('li_levels', levelsCleared);
+  localStorage.setItem('li_streak', checkInStreak);
+  localStorage.setItem('li_lastcheckin', lastCheckIn || '');
+}
+function loadStats() {
+  totalDeaths = parseInt(localStorage.getItem('li_deaths') || 0);
+  sessionsPlayed = parseInt(localStorage.getItem('li_sessions') || 0);
+  levelsCleared = parseInt(localStorage.getItem('li_levels') || 0);
+  checkInStreak = parseInt(localStorage.getItem('li_streak') || 0);
+  lastCheckIn = localStorage.getItem('li_lastcheckin') || null;
+}
+
+// ═══════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showOverlay(id) { document.getElementById(id).classList.add('active'); }
+function hideOverlay(id) { document.getElementById(id).classList.remove('active'); }
+
+let toastTimer;
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function shortAddr(addr) {
+  if (!addr) return '';
+  return addr.slice(0, 6) + '...' + addr.slice(-4);
+}
+
+function showLoading(title, desc, icon = '🔵') {
+  document.getElementById('loading-title').textContent = title;
+  document.getElementById('loading-desc').textContent = desc;
+  document.getElementById('loading-icon').textContent = icon;
+  showOverlay('overlay-loading');
+}
+function hideLoading() { hideOverlay('overlay-loading'); }
+
+// ═══════════════════════════════════════
+//  WALLET CONNECTION
+// ═══════════════════════════════════════
+async function connectWallet() {
+  if (!window.ethereum) {
+    showToast('❌ Wallet not found. Install MetaMask or Coinbase Wallet!');
+    return;
+  }
+  showLoading('CONNECTING', 'open your wallet...', '🔵');
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    walletAddress = accounts[0];
+
+    // Switch to Base
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: BASE_CHAIN_ID }],
+      });
+    } catch (switchErr) {
+      // Add Base if not exists
+      if (switchErr.code === 4902) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: BASE_CHAIN_ID,
+            chainName: 'Base',
+            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+            rpcUrls: ['https://mainnet.base.org'],
+            blockExplorerUrls: ['https://basescan.org'],
+          }],
+        });
+      }
+    }
+
+    hideLoading();
+    loadStats();
+    onWalletConnected();
+  } catch (err) {
+    hideLoading();
+    if (err.code === 4001) showToast('❌ Connection rejected by user');
+    else showToast('❌ Failed to connect: ' + (err.message || 'Unknown error'));
+  }
+}
+
+function onWalletConnected() {
+  document.getElementById('hub-wallet').textContent = shortAddr(walletAddress);
+  document.getElementById('hud-wallet-short').textContent = shortAddr(walletAddress);
+  updateHubUI();
+  showScreen('screen-hub');
+  showToast('✅ Wallet connected: ' + shortAddr(walletAddress));
+
+  window.ethereum.on('accountsChanged', (accounts) => {
+    if (accounts.length === 0) disconnectWallet();
+    else { walletAddress = accounts[0]; onWalletConnected(); }
+  });
+}
+
+function disconnectWallet() {
+  walletAddress = null;
+  lives = 0;
+  showScreen('screen-connect');
+  showToast('Wallet disconnected');
+}
+
+// ═══════════════════════════════════════
+//  DAILY CHECK-IN (simulated onchain tx)
+// ═══════════════════════════════════════
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+function hasCheckedInToday() {
+  return lastCheckIn === todayStr();
+}
+
+async function doCheckIn() {
+  if (hasCheckedInToday()) {
+    showToast('✅ Already checked in today!');
+    return;
+  }
+  showLoading('DAILY CHECK-IN', 'send transaction onchain...', '📅');
+  try {
+    // Simulate onchain tx (gas fee only — send 0 ETH to self)
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: walletAddress,
+        to: walletAddress, // send to self = minimal gas
+        value: '0x0',
+        data: '0x' + encodeCheckin(), // encode checkin data
+      }],
+    });
+    hideLoading();
+
+    // Update streak
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = yesterday.toISOString().split('T')[0];
+    if (lastCheckIn === yStr) checkInStreak++;
+    else if (lastCheckIn !== todayStr()) checkInStreak = 1;
+
+    lastCheckIn = todayStr();
+    saveStats();
+    updateHubUI();
+    showToast('🔥 Check-in success! Streak: ' + checkInStreak + ' days');
+  } catch (err) {
+    hideLoading();
+    if (err.code === 4001) showToast('❌ Transaction rejected');
+    else showToast('❌ Check-in failed: ' + (err.message || ''));
+  }
+}
+
+function encodeCheckin() {
+  // Encode "LEVELIBLIS_CHECKIN" as hex (for data field)
+  return Array.from('Devilland_CHECKIN').map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+}
+
+// ═══════════════════════════════════════
+//  NFT MINT (Life Pass — gas fee only)
+// ═══════════════════════════════════════
+async function mintLifePass() {
+  if (!walletAddress) return;
+  showLoading('MINT NFT', 'Minting Life Pass NFT to your wallet...', '🎟');
+  try {
+    // In production: call your NFT contract's mint() function
+    // Here we simulate with a 0 ETH tx carrying mint data
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: walletAddress,
+        to: walletAddress, // replace with NFT contract address
+        value: '0x0',
+        data: '0x' + encodeMint(),
+      }],
+    });
+
+    hideLoading();
+    lives = 3;
+    sessionsPlayed++;
+    saveStats();
+    updateHubUI();
+    updateLivesHUD();
+    showToast('🎟 Life Pass NFT successfully minted! 3 lives awarded.');
+    startGame();
+  } catch (err) {
+    hideLoading();
+    if (err.code === 4001) showToast('❌ Mint rejected');
+    else showToast('❌ Mint failled: ' + (err.message || ''));
+  }
+}
+
+function encodeMint() {
+  return Array.from('DEVILLAND_MINT_LIFEPASS').map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+}
+
+// ═══════════════════════════════════════
+//  HUB UI
+// ═══════════════════════════════════════
+function updateHubUI() {
+  document.getElementById('stat-deaths').textContent = totalDeaths;
+  document.getElementById('stat-streak').textContent = checkInStreak;
+  document.getElementById('stat-sessions').textContent = sessionsPlayed;
+  document.getElementById('stat-levels').textContent = levelsCleared;
+
+  const checked = hasCheckedInToday();
+  document.getElementById('checkin-icon').textContent = checked ? '✅' : '🔥';
+  document.getElementById('checkin-streak-text').textContent = 'Streak: ' + checkInStreak + ' days';
+  document.getElementById('checkin-status').textContent = checked
+    ? 'Already checked in today ✓'
+    : 'Not checked in today';
+  const btnCI = document.getElementById('btn-checkin');
+  btnCI.disabled = checked;
+  btnCI.style.opacity = checked ? '0.5' : '1';
+}
+
+function updateLivesHUD() {
+  const hearts = document.querySelectorAll('.life-heart');
+  hearts.forEach((h, i) => {
+    h.classList.toggle('lost', i >= lives);
+  });
+}
+
+// ═══════════════════════════════════════
+//  GAME ENGINE
+// ═══════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = 700, H = 420;
+
+let gameRunning = false;
+let sessionDeaths = 0;
+let currentLevel = 0;
+let platforms = [], traps = [], spikes = [];
+let gravFlipped = false;
+let shakeX = 0, shakeY = 0;
+let msgTimer = null;
+let gameTimer = 0;
+let frameCount = 0;
+
+const player = {
+  x: 60, y: 300, w: 28, h: 32,
+  vx: 0, vy: 0, onGround: false,
+  dead: false, respawnX: 60, respawnY: 300,
+  facingRight: true, blinking: false, blinkTimer: 0
+};
+
+// Input (keyboard + touch)
+const keys = {};
+const touchState = { left: false, right: false, jump: false };
+
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['Space','ArrowUp','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function setupTouchControls() {
+  function addTouch(id, key) {
+    const el = document.getElementById(id);
+    const press = (e) => { e.preventDefault(); touchState[key] = true; el.classList.add('pressed'); };
+    const release = (e) => { e.preventDefault(); touchState[key] = false; el.classList.remove('pressed'); };
+    el.addEventListener('touchstart', press, { passive: false });
+    el.addEventListener('touchend', release, { passive: false });
+    el.addEventListener('touchcancel', release, { passive: false });
+    el.addEventListener('mousedown', press);
+    el.addEventListener('mouseup', release);
+    el.addEventListener('mouseleave', release);
+  }
+  addTouch('btn-left', 'left');
+  addTouch('btn-right', 'right');
+  addTouch('btn-jump', 'jump');
+}
+
+function isLeft()  { return keys['ArrowLeft']  || keys['KeyA'] || touchState.left; }
+function isRight() { return keys['ArrowRight'] || keys['KeyD'] || touchState.right; }
+function isJump()  { return keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || touchState.jump; }
+
+// ─── LEVELS ───
+const LEVEL_DEFS = [
+  {
+    name:"Just Jump!", bg:'#0d0010',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#882222',id:'floor'},
+      {x:180,y:310,w:120,h:16,color:'#882222'},
+      {x:400,y:250,w:120,h:16,color:'#882222'},
+    ],
+    goal:{x:640,y:200,w:30,h:40}, spawnX:50, spawnY:340,
+    traps:[{type:'floor_vanish',platformId:'floor',triggerX:280}]
+  },
+  {
+    name:"Safe? Sure?", bg:'#000d1a',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#223355'},
+      {x:130,y:320,w:100,h:16,color:'#223355'},
+      {x:310,y:260,w:100,h:16,color:'#223355'},
+      {x:490,y:200,w:120,h:16,color:'#223355'},
+    ],
+    goal:{x:565,y:150,w:30,h:40}, spawnX:50, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:310,y:370,w:160,h:20,triggerX:180},
+      {type:'spike_appear',x:470,y:242,w:28,h:20,triggerX:350},
+    ]
+  },
+  {
+    name:"Believe...", bg:'#001a00',
+    platforms:[
+      {x:0,y:390,w:140,h:30,color:'#225522'},
+      {x:550,y:390,w:150,h:30,color:'#225522'},
+      {x:170,y:320,w:110,h:16,color:'#225522',type:'moving',mx:170,my:320,dx:2,range:110,dir:1},
+      {x:360,y:260,w:100,h:16,color:'#225522',type:'moving',mx:360,my:260,dx:-2,range:90,dir:1},
+    ],
+    goal:{x:600,y:340,w:30,h:40}, spawnX:50, spawnY:340,
+    traps:[{type:'platform_reverse',triggerX:260}]
+  },
+  {
+    name:"Up = down!", bg:'#1a0a00',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#553322',id:'ceil'},
+      {x:0,y:390,w:700,h:30,color:'#553322',id:'floor2'},
+      {x:130,y:50,w:100,h:16,color:'#553322'},
+      {x:310,y:180,w:100,h:16,color:'#553322'},
+      {x:490,y:50,w:120,h:16,color:'#553322'},
+    ],
+    goal:{x:570,y:30,w:30,h:40}, spawnX:50, spawnY:340,
+    traps:[{type:'gravity_flip',triggerX:290}]
+  },
+  {
+    name:"good luck suffering", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#661111',id:'ff'},
+      {x:80,y:330,w:80,h:16,color:'#661111'},
+      {x:240,y:270,w:80,h:16,color:'#661111',id:'vp',vanishes:true},
+      {x:400,y:300,w:80,h:16,color:'#661111',type:'moving',mx:400,my:300,dx:2,range:90,dir:1},
+      {x:550,y:250,w:100,h:16,color:'#661111'},
+    ],
+    goal:{x:605,y:200,w:30,h:40}, spawnX:50, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:140,y:372,w:70,h:20,triggerX:130},
+      {type:'floor_vanish',platformId:'vp',triggerX:260},
+      {type:'spike_appear',x:520,y:232,w:28,h:20,triggerX:420},
+    ]
+  },
+  // ── LEVEL 6 ──
+  {
+    name:"Hop Hop Hop", bg:'#0d001a',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#442266'},{x:150,y:360,w:70,h:16,color:'#442266'},
+      {x:280,y:330,w:70,h:16,color:'#442266'},{x:410,y:300,w:70,h:16,color:'#442266'},
+      {x:540,y:270,w:100,h:16,color:'#442266'},
+    ],
+    goal:{x:590,y:220,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[{type:'spike_appear',x:150,y:372,w:200,h:20,triggerX:200}]
+  },
+  // ── LEVEL 7 ──
+  {
+    name:"Speed Run!", bg:'#001a0d',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#225533',id:'fl7'},
+      {x:100,y:280,w:60,h:16,color:'#225533',type:'moving',mx:100,my:280,dx:3,range:80,dir:1},
+      {x:350,y:220,w:60,h:16,color:'#225533',type:'moving',mx:350,my:220,dx:3,range:80,dir:-1},
+      {x:550,y:160,w:80,h:16,color:'#225533'},
+    ],
+    goal:{x:590,y:110,w:30,h:40}, spawnX:30, spawnY:340,
+    traps:[{type:'floor_vanish',platformId:'fl7',triggerX:350}]
+  },
+  // ── LEVEL 8 ──
+  {
+    name:"Spike Alley", bg:'#1a0800',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#663311'},
+      {x:100,y:340,w:80,h:16,color:'#663311'},{x:250,y:290,w:80,h:16,color:'#663311'},
+      {x:400,y:240,w:80,h:16,color:'#663311'},{x:550,y:190,w:100,h:16,color:'#663311'},
+    ],
+    goal:{x:600,y:140,w:30,h:40}, spawnX:30, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:100,y:322,w:80,h:18,triggerX:80},
+      {type:'spike_appear',x:250,y:272,w:80,h:18,triggerX:220},
+      {type:'spike_appear',x:400,y:222,w:80,h:18,triggerX:370},
+    ]
+  },
+  // ── LEVEL 9 ──
+  {
+    name:"Double Flip", bg:'#0a0a1a',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#334466',id:'ceil9'},
+      {x:0,y:390,w:700,h:30,color:'#334466',id:'fl9'},
+      {x:150,y:200,w:100,h:16,color:'#334466'},
+      {x:380,y:150,w:100,h:16,color:'#334466'},
+      {x:550,y:80,w:100,h:16,color:'#334466'},
+    ],
+    goal:{x:590,y:40,w:30,h:40}, spawnX:30, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:160},
+      {type:'gravity_flip',triggerX:400},
+    ]
+  },
+  // ── LEVEL 10 ──
+  {
+    name:"Vanishing Act", bg:'#1a1a00',
+    platforms:[
+      {x:0,y:390,w:120,h:30,color:'#666622'},
+      {x:160,y:350,w:80,h:16,color:'#666622',id:'v10a'},{x:300,y:310,w:80,h:16,color:'#666622',id:'v10b'},
+      {x:440,y:270,w:80,h:16,color:'#666622',id:'v10c'},{x:580,y:230,w:80,h:16,color:'#666622'},
+    ],
+    goal:{x:610,y:180,w:30,h:40}, spawnX:30, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'v10a',triggerX:140},
+      {type:'floor_vanish',platformId:'v10b',triggerX:280},
+      {type:'floor_vanish',platformId:'v10c',triggerX:420},
+    ]
+  },
+  // ── LEVEL 11 ──
+  {
+    name:"Moving Maze", bg:'#001010',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#226655'},
+      {x:120,y:330,w:90,h:16,color:'#226655',type:'moving',mx:120,my:330,dx:2,range:60,dir:1},
+      {x:300,y:270,w:90,h:16,color:'#226655',type:'moving',mx:300,my:270,dx:-2,range:60,dir:1},
+      {x:480,y:210,w:90,h:16,color:'#226655',type:'moving',mx:480,my:210,dx:2,range:60,dir:1},
+    ],
+    goal:{x:560,y:160,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[{type:'spike_appear',x:200,y:370,w:100,h:20,triggerX:200}]
+  },
+  // ── LEVEL 12 ──
+  {
+    name:"The Abyss", bg:'#000000',
+    platforms:[
+      {x:0,y:390,w:100,h:30,color:'#333333'},
+      {x:160,y:340,w:60,h:16,color:'#333333'},{x:280,y:290,w:60,h:16,color:'#333333'},
+      {x:400,y:240,w:60,h:16,color:'#333333'},{x:520,y:190,w:60,h:16,color:'#333333'},
+      {x:610,y:140,w:60,h:16,color:'#333333'},
+    ],
+    goal:{x:630,y:90,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:0,y:372,w:100,h:20,triggerX:120},
+      {type:'spike_appear',x:400,y:222,w:60,h:18,triggerX:380},
+    ]
+  },
+  // ── LEVEL 13 ──
+  {
+    name:"Unlucky 13", bg:'#13000d',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#551133',id:'fl13'},
+      {x:80,y:310,w:70,h:16,color:'#551133',type:'moving',mx:80,my:310,dx:2,range:50,dir:1},
+      {x:280,y:250,w:70,h:16,color:'#551133',id:'v13'},
+      {x:450,y:190,w:70,h:16,color:'#551133',type:'moving',mx:450,my:190,dx:-2,range:60,dir:1},
+      {x:580,y:130,w:80,h:16,color:'#551133'},
+    ],
+    goal:{x:615,y:80,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'fl13',triggerX:300},
+      {type:'floor_vanish',platformId:'v13',triggerX:320},
+    ]
+  },
+  // ── LEVEL 14 ──
+  {
+    name:"Spiky Road", bg:'#0d0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#882211'},
+      {x:100,y:300,w:100,h:16,color:'#882211'},{x:270,y:230,w:100,h:16,color:'#882211'},
+      {x:440,y:160,w:100,h:16,color:'#882211'},{x:580,y:100,w:80,h:16,color:'#882211'},
+    ],
+    goal:{x:610,y:50,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:50,y:372,w:50,h:20,triggerX:80},
+      {type:'spike_appear',x:190,y:372,w:80,h:20,triggerX:180},
+      {type:'spike_appear',x:360,y:372,w:80,h:20,triggerX:340},
+    ]
+  },
+  // ── LEVEL 15 ──
+  {
+    name:"Flip & Run", bg:'#050510',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#224488',id:'ceil15'},
+      {x:0,y:390,w:700,h:30,color:'#224488',id:'fl15'},
+      {x:100,y:100,w:80,h:16,color:'#224488'},{x:280,y:200,w:80,h:16,color:'#224488'},
+      {x:460,y:100,w:80,h:16,color:'#224488'},{x:580,y:50,w:80,h:16,color:'#224488'},
+    ],
+    goal:{x:610,y:10,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:130},
+      {type:'spike_appear',x:200,y:372,w:80,h:20,triggerX:250},
+    ]
+  },
+  // ── LEVEL 16 ──
+  {
+    name:"Narrow Path", bg:'#0a0010',
+    platforms:[
+      {x:0,y:390,w:50,h:30,color:'#553366'},{x:90,y:370,w:50,h:30,color:'#553366'},
+      {x:180,y:350,w:50,h:30,color:'#553366'},{x:270,y:330,w:50,h:30,color:'#553366'},
+      {x:360,y:310,w:50,h:30,color:'#553366'},{x:450,y:290,w:50,h:30,color:'#553366'},
+      {x:550,y:250,w:100,h:16,color:'#553366'},
+    ],
+    goal:{x:590,y:200,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:50,y:372,w:40,h:20,triggerX:60},
+      {type:'spike_appear',x:230,y:372,w:40,h:20,triggerX:230},
+    ]
+  },
+  // ── LEVEL 17 ──
+  {
+    name:"Sky High", bg:'#001428',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#114466'},
+      {x:50,y:320,w:80,h:16,color:'#114466'},{x:200,y:260,w:80,h:16,color:'#114466'},
+      {x:340,y:200,w:80,h:16,color:'#114466'},{x:480,y:140,w:80,h:16,color:'#114466'},
+      {x:580,y:80,w:80,h:16,color:'#114466'},
+    ],
+    goal:{x:610,y:30,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'platform_reverse',triggerX:220}]
+  },
+  // ── LEVEL 18 ──
+  {
+    name:"Chain Reaction", bg:'#1a0a00',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#774411',id:'ch18'},
+      {x:80,y:340,w:80,h:16,color:'#774411',id:'ch18a'},
+      {x:220,y:290,w:80,h:16,color:'#774411',id:'ch18b'},
+      {x:360,y:240,w:80,h:16,color:'#774411'},{x:500,y:190,w:80,h:16,color:'#774411'},
+    ],
+    goal:{x:540,y:140,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'ch18',triggerX:120},
+      {type:'floor_vanish',platformId:'ch18a',triggerX:150},
+      {type:'floor_vanish',platformId:'ch18b',triggerX:260},
+    ]
+  },
+  // ── LEVEL 19 ──
+  {
+    name:"Devil's Dash", bg:'#200005',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#880022'},
+      {x:120,y:350,w:60,h:16,color:'#880022',type:'moving',mx:120,my:350,dx:4,range:100,dir:1},
+      {x:330,y:300,w:60,h:16,color:'#880022',type:'moving',mx:330,my:300,dx:-4,range:100,dir:1},
+      {x:500,y:240,w:80,h:16,color:'#880022'},
+    ],
+    goal:{x:540,y:190,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:200,y:370,w:130,h:20,triggerX:200}]
+  },
+  // ── LEVEL 20 ──
+  {
+    name:"The 20th", bg:'#111100',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#888811',id:'fl20'},
+      {x:70,y:310,w:80,h:16,color:'#888811',type:'moving',mx:70,my:310,dx:2,range:70,dir:1},
+      {x:280,y:230,w:80,h:16,color:'#888811',id:'v20'},
+      {x:450,y:150,w:80,h:16,color:'#888811',type:'moving',mx:450,my:150,dx:-2,range:70,dir:1},
+      {x:590,y:80,w:80,h:16,color:'#888811'},
+    ],
+    goal:{x:620,y:30,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'fl20',triggerX:200},
+      {type:'floor_vanish',platformId:'v20',triggerX:300},
+      {type:'gravity_flip',triggerX:500},
+    ]
+  },
+  // ── LEVEL 21 ──
+  {
+    name:"Zigzag Hell", bg:'#0d1a00',
+    platforms:[
+      {x:0,y:390,w:90,h:30,color:'#336611'},
+      {x:140,y:330,w:70,h:16,color:'#336611'},{x:260,y:270,w:70,h:16,color:'#336611'},
+      {x:380,y:210,w:70,h:16,color:'#336611'},{x:500,y:150,w:70,h:16,color:'#336611'},
+      {x:590,y:90,w:80,h:16,color:'#336611'},
+    ],
+    goal:{x:620,y:40,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:90,y:372,w:50,h:20,triggerX:100},
+      {type:'spike_appear',x:330,y:372,w:50,h:20,triggerX:330},
+      {type:'spike_appear',x:450,y:372,w:50,h:20,triggerX:450},
+    ]
+  },
+  // ── LEVEL 22 ──
+  {
+    name:"Reverse World", bg:'#00001a',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#112255',id:'ceil22'},
+      {x:0,y:390,w:700,h:30,color:'#112255',id:'fl22'},
+      {x:80,y:60,w:80,h:16,color:'#112255'},{x:250,y:120,w:80,h:16,color:'#112255'},
+      {x:420,y:60,w:80,h:16,color:'#112255'},{x:580,y:30,w:80,h:16,color:'#112255'},
+    ],
+    goal:{x:610,y:-10,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[{type:'gravity_flip',triggerX:50},{type:'platform_reverse',triggerX:300}]
+  },
+  // ── LEVEL 23 ──
+  {
+    name:"Tight Squeeze", bg:'#180012',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#661155'},
+      {x:50,y:310,w:55,h:16,color:'#661155'},{x:160,y:240,w:55,h:16,color:'#661155'},
+      {x:270,y:310,w:55,h:16,color:'#661155'},{x:380,y:240,w:55,h:16,color:'#661155'},
+      {x:490,y:310,w:55,h:16,color:'#661155'},{x:580,y:240,w:80,h:16,color:'#661155'},
+    ],
+    goal:{x:605,y:190,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:110,y:372,w:50,h:20,triggerX:100}]
+  },
+  // ── LEVEL 24 ──
+  {
+    name:"Fast Movers", bg:'#001808',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#115522'},
+      {x:120,y:340,w:70,h:16,color:'#115522',type:'moving',mx:120,my:340,dx:5,range:120,dir:1},
+      {x:360,y:280,w:70,h:16,color:'#115522',type:'moving',mx:360,my:280,dx:-5,range:120,dir:1},
+      {x:560,y:220,w:80,h:16,color:'#115522'},
+    ],
+    goal:{x:595,y:170,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90}]
+  },
+  // ── LEVEL 25 ──
+  {
+    name:"Quarter Century", bg:'#1a1500',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#776611',id:'fl25'},
+      {x:60,y:300,w:70,h:16,color:'#776611',id:'q25a'},
+      {x:200,y:240,w:70,h:16,color:'#776611',type:'moving',mx:200,my:240,dx:3,range:80,dir:1},
+      {x:380,y:180,w:70,h:16,color:'#776611',id:'q25b'},
+      {x:530,y:120,w:80,h:16,color:'#776611'},
+    ],
+    goal:{x:565,y:70,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'fl25',triggerX:150},
+      {type:'floor_vanish',platformId:'q25a',triggerX:100},
+      {type:'floor_vanish',platformId:'q25b',triggerX:400},
+      {type:'gravity_flip',triggerX:430},
+    ]
+  },
+  // ── LEVEL 26 ──
+  {
+    name:"Ghost Steps", bg:'#0a0a0a',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#444444'},
+      {x:130,y:350,w:60,h:16,color:'#444444',id:'g26a'},{x:250,y:310,w:60,h:16,color:'#444444',id:'g26b'},
+      {x:370,y:270,w:60,h:16,color:'#444444',id:'g26c'},{x:490,y:230,w:60,h:16,color:'#444444',id:'g26d'},
+      {x:580,y:190,w:80,h:16,color:'#444444'},
+    ],
+    goal:{x:610,y:140,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'g26a',triggerX:110},
+      {type:'floor_vanish',platformId:'g26b',triggerX:230},
+      {type:'floor_vanish',platformId:'g26c',triggerX:350},
+      {type:'floor_vanish',platformId:'g26d',triggerX:470},
+    ]
+  },
+  // ── LEVEL 27 ──
+  {
+    name:"Platform Shuffle", bg:'#100010',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#552255'},
+      {x:80,y:320,w:80,h:16,color:'#552255',type:'moving',mx:80,my:320,dx:3,range:60,dir:1},
+      {x:250,y:260,w:80,h:16,color:'#552255',type:'moving',mx:250,my:260,dx:-3,range:60,dir:1},
+      {x:420,y:200,w:80,h:16,color:'#552255',type:'moving',mx:420,my:200,dx:3,range:60,dir:1},
+      {x:560,y:140,w:80,h:16,color:'#552255'},
+    ],
+    goal:{x:590,y:90,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[{type:'platform_reverse',triggerX:300}]
+  },
+  // ── LEVEL 28 ──
+  {
+    name:"Spike Garden", bg:'#1a0500',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#772200'},
+      {x:100,y:330,w:80,h:16,color:'#772200'},{x:260,y:270,w:80,h:16,color:'#772200'},
+      {x:420,y:210,w:80,h:16,color:'#772200'},{x:560,y:150,w:100,h:16,color:'#772200'},
+    ],
+    goal:{x:600,y:100,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:50,y:372,w:50,h:20,triggerX:60},
+      {type:'spike_appear',x:180,y:372,w:80,h:20,triggerX:160},
+      {type:'spike_appear',x:340,y:372,w:80,h:20,triggerX:320},
+      {type:'spike_appear',x:500,y:372,w:60,h:20,triggerX:480},
+    ]
+  },
+  // ── LEVEL 29 ──
+  {
+    name:"Gravity Games", bg:'#00050a',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#224466',id:'c29'},
+      {x:0,y:390,w:700,h:30,color:'#224466',id:'f29'},
+      {x:100,y:80,w:80,h:16,color:'#224466'},{x:280,y:200,w:80,h:16,color:'#224466'},
+      {x:460,y:80,w:80,h:16,color:'#224466'},{x:580,y:30,w:80,h:16,color:'#224466'},
+    ],
+    goal:{x:615,y:-10,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:80},
+      {type:'spike_appear',x:200,y:372,w:80,h:20,triggerX:200},
+      {type:'gravity_flip',triggerX:400},
+    ]
+  },
+  // ── LEVEL 30 ──
+  {
+    name:"Halfway to Hell", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#991111',id:'f30'},
+      {x:60,y:310,w:70,h:16,color:'#991111',id:'h30a'},
+      {x:200,y:250,w:70,h:16,color:'#991111',type:'moving',mx:200,my:250,dx:3,range:80,dir:1},
+      {x:380,y:190,w:70,h:16,color:'#991111',id:'h30b'},
+      {x:530,y:130,w:80,h:16,color:'#991111'},
+    ],
+    goal:{x:565,y:80,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f30',triggerX:120},
+      {type:'floor_vanish',platformId:'h30a',triggerX:100},
+      {type:'spike_appear',x:310,y:372,w:70,h:20,triggerX:290},
+      {type:'floor_vanish',platformId:'h30b',triggerX:410},
+      {type:'gravity_flip',triggerX:460},
+    ]
+  },
+  // ── LEVEL 31 ──
+  {
+    name:"Bouncing Madness", bg:'#001a1a',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#116655'},
+      {x:70,y:320,w:90,h:16,color:'#116655',type:'moving',mx:70,my:320,dx:4,range:100,dir:1},
+      {x:300,y:250,w:90,h:16,color:'#116655',type:'moving',mx:300,my:250,dx:-4,range:100,dir:1},
+      {x:520,y:180,w:90,h:16,color:'#116655',type:'moving',mx:520,my:180,dx:4,range:80,dir:1},
+    ],
+    goal:{x:590,y:130,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:160,y:372,w:140,h:20,triggerX:150}]
+  },
+  // ── LEVEL 32 ──
+  {
+    name:"The Void", bg:'#050005',
+    platforms:[
+      {x:0,y:390,w:60,h:30,color:'#330033'},
+      {x:120,y:340,w:50,h:16,color:'#330033'},{x:230,y:290,w:50,h:16,color:'#330033'},
+      {x:340,y:240,w:50,h:16,color:'#330033'},{x:450,y:190,w:50,h:16,color:'#330033'},
+      {x:560,y:140,w:80,h:16,color:'#330033'},
+    ],
+    goal:{x:590,y:90,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:60,y:372,w:60,h:20,triggerX:70},
+      {type:'spike_appear',x:280,y:372,w:60,h:20,triggerX:270},
+      {type:'spike_appear',x:500,y:372,w:60,h:20,triggerX:490},
+    ]
+  },
+  // ── LEVEL 33 ──
+  {
+    name:"Stairway Down", bg:'#100a00',
+    platforms:[
+      {x:580,y:390,w:120,h:30,color:'#553300'},
+      {x:440,y:330,w:100,h:16,color:'#553300'},{x:300,y:270,w:100,h:16,color:'#553300'},
+      {x:160,y:210,w:100,h:16,color:'#553300'},{x:20,y:150,w:100,h:16,color:'#553300'},
+    ],
+    goal:{x:650,y:340,w:30,h:40}, spawnX:30, spawnY:100,
+    traps:[
+      {type:'spike_appear',x:120,y:130,w:40,h:20,triggerX:80},
+      {type:'gravity_flip',triggerX:200},
+    ]
+  },
+  // ── LEVEL 34 ──
+  {
+    name:"Lava Ride", bg:'#1a0500',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#883300'},
+      {x:130,y:360,w:70,h:16,color:'#883300',type:'moving',mx:130,my:360,dx:3,range:80,dir:1},
+      {x:320,y:310,w:70,h:16,color:'#883300',type:'moving',mx:320,my:310,dx:-3,range:80,dir:1},
+      {x:500,y:260,w:80,h:16,color:'#883300'},
+    ],
+    goal:{x:540,y:210,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:0,y:372,w:80,h:20,triggerX:80},
+      {type:'spike_appear',x:400,y:372,w:100,h:20,triggerX:390},
+    ]
+  },
+  // ── LEVEL 35 ──
+  {
+    name:"Nowhere Safe", bg:'#0d000d',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#551155',id:'f35'},
+      {x:80,y:320,w:70,h:16,color:'#551155',id:'n35a'},
+      {x:220,y:260,w:70,h:16,color:'#551155',type:'moving',mx:220,my:260,dx:2,range:60,dir:1},
+      {x:400,y:200,w:70,h:16,color:'#551155',id:'n35b'},
+      {x:560,y:140,w:80,h:16,color:'#551155'},
+    ],
+    goal:{x:595,y:90,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f35',triggerX:100},
+      {type:'floor_vanish',platformId:'n35a',triggerX:120},
+      {type:'spike_appear',x:300,y:242,w:100,h:18,triggerX:290},
+      {type:'floor_vanish',platformId:'n35b',triggerX:430},
+    ]
+  },
+  // ── LEVEL 36 ──
+  {
+    name:"Crazy Platforms", bg:'#001500',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#225522'},
+      {x:50,y:300,w:60,h:16,color:'#225522',type:'moving',mx:50,my:300,dx:5,range:150,dir:1},
+      {x:350,y:220,w:60,h:16,color:'#225522',type:'moving',mx:350,my:220,dx:-5,range:150,dir:1},
+      {x:580,y:160,w:80,h:16,color:'#225522'},
+    ],
+    goal:{x:615,y:110,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'platform_reverse',triggerX:200},{type:'gravity_flip',triggerX:450}]
+  },
+  // ── LEVEL 37 ──
+  {
+    name:"Spiky Ceiling", bg:'#0a0010',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#442266',id:'ceil37'},
+      {x:0,y:390,w:700,h:30,color:'#442266'},
+      {x:100,y:300,w:80,h:16,color:'#442266'},{x:280,y:230,w:80,h:16,color:'#442266'},
+      {x:460,y:160,w:80,h:16,color:'#442266'},{x:580,y:90,w:80,h:16,color:'#442266'},
+    ],
+    goal:{x:615,y:40,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:120},
+      {type:'spike_appear',x:200,y:372,w:80,h:20,triggerX:200},
+    ]
+  },
+  // ── LEVEL 38 ──
+  {
+    name:"Short Hops", bg:'#1a1a00',
+    platforms:[
+      {x:0,y:390,w:50,h:30,color:'#777711'},
+      {x:70,y:375,w:50,h:30,color:'#777711'},{x:140,y:360,w:50,h:30,color:'#777711'},
+      {x:210,y:340,w:50,h:30,color:'#777711'},{x:280,y:320,w:50,h:30,color:'#777711'},
+      {x:350,y:300,w:50,h:30,color:'#777711'},{x:420,y:280,w:50,h:30,color:'#777711'},
+      {x:500,y:250,w:80,h:16,color:'#777711'},{x:580,y:200,w:80,h:16,color:'#777711'},
+    ],
+    goal:{x:610,y:150,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:50,y:372,w:20,h:20,triggerX:60},{type:'spike_appear',x:200,y:372,w:80,h:20,triggerX:200}]
+  },
+  // ── LEVEL 39 ──
+  {
+    name:"Tick Tock", bg:'#0a0505',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#662222',id:'f39'},
+      {x:80,y:310,w:70,h:16,color:'#662222',type:'moving',mx:80,my:310,dx:3,range:80,dir:1},
+      {x:280,y:240,w:70,h:16,color:'#662222',id:'t39'},
+      {x:430,y:170,w:70,h:16,color:'#662222',type:'moving',mx:430,my:170,dx:-3,range:80,dir:1},
+      {x:580,y:110,w:80,h:16,color:'#662222'},
+    ],
+    goal:{x:615,y:60,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f39',triggerX:200},
+      {type:'floor_vanish',platformId:'t39',triggerX:320},
+      {type:'spike_appear',x:360,y:372,w:70,h:20,triggerX:350},
+    ]
+  },
+  // ── LEVEL 40 ──
+  {
+    name:"40 Floors Up", bg:'#001a20',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#115566',id:'f40'},
+      {x:60,y:330,w:70,h:16,color:'#115566'},{x:190,y:270,w:70,h:16,color:'#115566'},
+      {x:320,y:210,w:70,h:16,color:'#115566'},{x:450,y:150,w:70,h:16,color:'#115566'},
+      {x:570,y:90,w:80,h:16,color:'#115566'},
+    ],
+    goal:{x:605,y:40,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f40',triggerX:200},
+      {type:'platform_reverse',triggerX:300},
+      {type:'gravity_flip',triggerX:500},
+    ]
+  },
+  // ── LEVEL 41 ──
+  {
+    name:"Scattered Souls", bg:'#100000',
+    platforms:[
+      {x:0,y:390,w:60,h:30,color:'#880000'},
+      {x:90,y:350,w:50,h:16,color:'#880000'},{x:190,y:300,w:50,h:16,color:'#880000'},
+      {x:320,y:260,w:50,h:16,color:'#880000'},{x:430,y:210,w:50,h:16,color:'#880000'},
+      {x:540,y:160,w:80,h:16,color:'#880000'},
+    ],
+    goal:{x:570,y:110,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:60,y:372,w:30,h:20,triggerX:70},
+      {type:'spike_appear',x:240,y:372,w:80,h:20,triggerX:230},
+      {type:'spike_appear',x:480,y:372,w:60,h:20,triggerX:470},
+    ]
+  },
+  // ── LEVEL 42 ──
+  {
+    name:"Meaning of Life", bg:'#0a001a',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#330077'},
+      {x:80,y:310,w:80,h:16,color:'#330077',type:'moving',mx:80,my:310,dx:3,range:90,dir:1},
+      {x:310,y:230,w:80,h:16,color:'#330077',type:'moving',mx:310,my:230,dx:-3,range:90,dir:1},
+      {x:530,y:160,w:80,h:16,color:'#330077'},
+    ],
+    goal:{x:565,y:110,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[{type:'spike_appear',x:160,y:372,w:150,h:20,triggerX:150},{type:'gravity_flip',triggerX:400}]
+  },
+  // ── LEVEL 43 ──
+  {
+    name:"Triple Threat", bg:'#001000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#224400',id:'f43'},
+      {x:70,y:300,w:70,h:16,color:'#224400',id:'tr43a'},
+      {x:230,y:240,w:70,h:16,color:'#224400',id:'tr43b'},
+      {type:'platform', x:400,y:180,w:70,h:16,color:'#224400',id:'tr43c',type:'moving',mx:400,my:180,dx:2,range:60,dir:1},
+      {x:560,y:120,w:80,h:16,color:'#224400'},
+    ],
+    goal:{x:595,y:70,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f43',triggerX:130},
+      {type:'floor_vanish',platformId:'tr43a',triggerX:110},
+      {type:'floor_vanish',platformId:'tr43b',triggerX:270},
+      {type:'spike_appear',x:470,y:162,w:90,h:18,triggerX:460},
+    ]
+  },
+  // ── LEVEL 44 ──
+  {
+    name:"Side Scroller", bg:'#00100a',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#115533'},
+      {x:50,y:330,w:80,h:16,color:'#115533'},{x:210,y:270,w:80,h:16,color:'#115533'},
+      {x:380,y:210,w:80,h:16,color:'#115533'},{x:540,y:150,w:80,h:16,color:'#115533'},
+    ],
+    goal:{x:575,y:100,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:130,y:372,w:80,h:20,triggerX:120},
+      {type:'spike_appear',x:300,y:372,w:80,h:20,triggerX:290},
+      {type:'platform_reverse',triggerX:400},
+    ]
+  },
+  // ── LEVEL 45 ──
+  {
+    name:"Penultimate Pain", bg:'#1a1000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#664400',id:'f45'},
+      {x:70,y:330,w:60,h:16,color:'#664400',id:'p45a'},
+      {x:190,y:270,w:60,h:16,color:'#664400',type:'moving',mx:190,my:270,dx:3,range:70,dir:1},
+      {x:370,y:210,w:60,h:16,color:'#664400',id:'p45b'},
+      {x:500,y:150,w:60,h:16,color:'#664400',type:'moving',mx:500,my:150,dx:-3,range:70,dir:1},
+      {x:590,y:90,w:70,h:16,color:'#664400'},
+    ],
+    goal:{x:620,y:40,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f45',triggerX:120},
+      {type:'floor_vanish',platformId:'p45a',triggerX:100},
+      {type:'spike_appear',x:300,y:372,w:70,h:20,triggerX:280},
+      {type:'floor_vanish',platformId:'p45b',triggerX:400},
+      {type:'gravity_flip',triggerX:520},
+    ]
+  },
+  // ── LEVEL 46 ──
+  {
+    name:"Checkerboard", bg:'#080808',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#444444'},
+      {x:120,y:340,w:60,h:16,color:'#444444'},{x:240,y:300,w:60,h:16,color:'#444444'},
+      {x:360,y:260,w:60,h:16,color:'#444444'},{x:480,y:220,w:60,h:16,color:'#444444'},
+      {x:580,y:180,w:80,h:16,color:'#444444'},
+    ],
+    goal:{x:610,y:130,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90},
+      {type:'spike_appear',x:180,y:372,w:60,h:20,triggerX:170},
+      {type:'spike_appear',x:420,y:372,w:60,h:20,triggerX:410},
+    ]
+  },
+  // ── LEVEL 47 ──
+  {
+    name:"Dual Gravity", bg:'#000510',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#113355',id:'c47'},
+      {x:0,y:390,w:700,h:30,color:'#113355',id:'f47'},
+      {x:100,y:60,w:70,h:16,color:'#113355'},{x:280,y:160,w:70,h:16,color:'#113355'},
+      {x:450,y:60,w:70,h:16,color:'#113355'},{x:580,y:30,w:80,h:16,color:'#113355'},
+    ],
+    goal:{x:615,y:-10,w:30,h:40}, spawnX:20, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:80},
+      {type:'spike_appear',x:170,y:372,w:110,h:20,triggerX:160},
+      {type:'gravity_flip',triggerX:350},
+      {type:'gravity_flip',triggerX:520},
+    ]
+  },
+  // ── LEVEL 48 ──
+  {
+    name:"Shrinking World", bg:'#0f0010',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#440066',id:'sw48'},
+      {x:60,y:310,w:70,h:16,color:'#440066',id:'sw48a'},
+      {x:200,y:250,w:70,h:16,color:'#440066',type:'moving',mx:200,my:250,dx:3,range:80,dir:1},
+      {x:380,y:190,w:70,h:16,color:'#440066',id:'sw48b'},
+      {x:530,y:130,w:80,h:16,color:'#440066'},
+    ],
+    goal:{x:565,y:80,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'sw48',triggerX:100},
+      {type:'floor_vanish',platformId:'sw48a',triggerX:90},
+      {type:'spike_appear',x:310,y:172,w:70,h:18,triggerX:300},
+      {type:'floor_vanish',platformId:'sw48b',triggerX:420},
+      {type:'platform_reverse',triggerX:450},
+    ]
+  },
+  // ── LEVEL 49 ──
+  {
+    name:"Almost 50!", bg:'#1a0010',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#880044'},
+      {x:80,y:310,w:80,h:16,color:'#880044',type:'moving',mx:80,my:310,dx:4,range:100,dir:1},
+      {x:320,y:230,w:80,h:16,color:'#880044',type:'moving',mx:320,my:230,dx:-4,range:100,dir:1},
+      {x:550,y:150,w:80,h:16,color:'#880044'},
+    ],
+    goal:{x:585,y:100,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:160,y:372,w:160,h:20,triggerX:150},
+      {type:'gravity_flip',triggerX:360},
+    ]
+  },
+  // ── LEVEL 50 ──
+  {
+    name:"Halfway to Heaven", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#aa1111',id:'f50'},
+      {x:60,y:320,w:70,h:16,color:'#aa1111',id:'h50a'},
+      {x:190,y:260,w:70,h:16,color:'#aa1111',type:'moving',mx:190,my:260,dx:3,range:80,dir:1},
+      {x:360,y:200,w:70,h:16,color:'#aa1111',id:'h50b'},
+      {x:490,y:140,w:70,h:16,color:'#aa1111',type:'moving',mx:490,my:140,dx:-3,range:80,dir:1},
+      {x:590,y:80,w:80,h:16,color:'#aa1111'},
+    ],
+    goal:{x:625,y:30,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f50',triggerX:130},
+      {type:'floor_vanish',platformId:'h50a',triggerX:100},
+      {type:'spike_appear',x:290,y:242,w:70,h:18,triggerX:280},
+      {type:'floor_vanish',platformId:'h50b',triggerX:400},
+      {type:'gravity_flip',triggerX:440},
+      {type:'platform_reverse',triggerX:520},
+    ]
+  },
+  // ── LEVELS 51–60 (increasing difficulty) ──
+  {
+    name:"Devil's Staircase", bg:'#0d0010',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#551177'},
+      {x:130,y:330,w:65,h:16,color:'#551177'},{x:250,y:270,w:65,h:16,color:'#551177'},
+      {x:370,y:210,w:65,h:16,color:'#551177'},{x:490,y:150,w:65,h:16,color:'#551177'},
+      {x:590,y:90,w:80,h:16,color:'#551177'},
+    ],
+    goal:{x:620,y:40,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:50,h:20,triggerX:90},
+      {type:'spike_appear',x:195,y:372,w:55,h:20,triggerX:185},
+      {type:'spike_appear',x:315,y:372,w:55,h:20,triggerX:305},
+    ]
+  },
+  {
+    name:"Nightmare Hop", bg:'#0a0005',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#440033',id:'f52'},
+      {x:60,y:320,w:60,h:16,color:'#440033',id:'n52a'},
+      {x:180,y:260,w:60,h:16,color:'#440033',type:'moving',mx:180,my:260,dx:4,range:90,dir:1},
+      {x:380,y:200,w:60,h:16,color:'#440033',id:'n52b'},
+      {x:530,y:140,w:70,h:16,color:'#440033'},
+    ],
+    goal:{x:565,y:90,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f52',triggerX:100},
+      {type:'floor_vanish',platformId:'n52a',triggerX:90},
+      {type:'floor_vanish',platformId:'n52b',triggerX:420},
+      {type:'gravity_flip',triggerX:460},
+    ]
+  },
+  {
+    name:"Moving Gauntlet", bg:'#001010',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#115555'},
+      {x:120,y:340,w:70,h:16,color:'#115555',type:'moving',mx:120,my:340,dx:5,range:130,dir:1},
+      {x:360,y:270,w:70,h:16,color:'#115555',type:'moving',mx:360,my:270,dx:-5,range:130,dir:1},
+      {x:580,y:200,w:80,h:16,color:'#115555',type:'moving',mx:580,my:200,dx:3,range:60,dir:1},
+    ],
+    goal:{x:640,y:150,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90},{type:'platform_reverse',triggerX:300}]
+  },
+  {
+    name:"Floor Dropout", bg:'#0f0f00',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#666600',id:'f54'},
+      {x:60,y:310,w:80,h:16,color:'#666600',id:'fd54a'},
+      {x:200,y:250,w:80,h:16,color:'#666600',id:'fd54b'},
+      {x:340,y:190,w:80,h:16,color:'#666600',id:'fd54c'},
+      {x:480,y:130,w:80,h:16,color:'#666600'},
+    ],
+    goal:{x:510,y:80,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f54',triggerX:80},
+      {type:'floor_vanish',platformId:'fd54a',triggerX:110},
+      {type:'floor_vanish',platformId:'fd54b',triggerX:250},
+      {type:'floor_vanish',platformId:'fd54c',triggerX:390},
+    ]
+  },
+  {
+    name:"Spike Mountain", bg:'#1a0800',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#773300'},
+      {x:80,y:320,w:70,h:16,color:'#773300'},{x:210,y:260,w:70,h:16,color:'#773300'},
+      {x:340,y:200,w:70,h:16,color:'#773300'},{x:470,y:140,w:70,h:16,color:'#773300'},
+      {x:580,y:80,w:80,h:16,color:'#773300'},
+    ],
+    goal:{x:610,y:30,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:30,y:372,w:50,h:20,triggerX:50},
+      {type:'spike_appear',x:150,y:372,w:60,h:20,triggerX:140},
+      {type:'spike_appear',x:280,y:372,w:60,h:20,triggerX:270},
+      {type:'spike_appear',x:410,y:372,w:60,h:20,triggerX:400},
+    ]
+  },
+  {
+    name:"Flip Marathon", bg:'#001820',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#115566',id:'c56'},
+      {x:0,y:390,w:700,h:30,color:'#115566',id:'f56'},
+      {x:80,y:80,w:70,h:16,color:'#115566'},{x:220,y:180,w:70,h:16,color:'#115566'},
+      {x:380,y:80,w:70,h:16,color:'#115566'},{x:540,y:30,w:80,h:16,color:'#115566'},
+    ],
+    goal:{x:575,y:-10,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:60},
+      {type:'spike_appear',x:150,y:372,w:70,h:20,triggerX:140},
+      {type:'gravity_flip',triggerX:290},
+      {type:'spike_appear',x:450,y:372,w:90,h:20,triggerX:440},
+    ]
+  },
+  {
+    name:"Demon's Den", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#bb0000',id:'f57'},
+      {x:70,y:310,w:70,h:16,color:'#bb0000',id:'d57a'},
+      {x:210,y:250,w:70,h:16,color:'#bb0000',type:'moving',mx:210,my:250,dx:4,range:90,dir:1},
+      {x:420,y:190,w:70,h:16,color:'#bb0000',id:'d57b'},
+      {x:570,y:130,w:80,h:16,color:'#bb0000'},
+    ],
+    goal:{x:605,y:80,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f57',triggerX:120},
+      {type:'floor_vanish',platformId:'d57a',triggerX:100},
+      {type:'spike_appear',x:340,y:232,w:80,h:18,triggerX:330},
+      {type:'floor_vanish',platformId:'d57b',triggerX:460},
+      {type:'gravity_flip',triggerX:500},
+    ]
+  },
+  {
+    name:"All Tricks", bg:'#0a0010',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#330066',id:'f58'},
+      {x:60,y:310,w:70,h:16,color:'#330066',type:'moving',mx:60,my:310,dx:3,range:80,dir:1},
+      {x:260,y:240,w:70,h:16,color:'#330066',id:'at58'},
+      {x:420,y:170,w:70,h:16,color:'#330066',type:'moving',mx:420,my:170,dx:-3,range:80,dir:1},
+      {x:580,y:100,w:80,h:16,color:'#330066'},
+    ],
+    goal:{x:615,y:50,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f58',triggerX:100},
+      {type:'spike_appear',x:190,y:372,w:70,h:20,triggerX:180},
+      {type:'floor_vanish',platformId:'at58',triggerX:300},
+      {type:'platform_reverse',triggerX:350},
+      {type:'gravity_flip',triggerX:500},
+    ]
+  },
+  {
+    name:"Near the Top", bg:'#0d1a00',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#336600'},
+      {x:120,y:330,w:60,h:16,color:'#336600'},{x:240,y:270,w:60,h:16,color:'#336600'},
+      {x:360,y:210,w:60,h:16,color:'#336600'},{x:480,y:150,w:60,h:16,color:'#336600'},
+      {x:580,y:90,w:80,h:16,color:'#336600'},
+    ],
+    goal:{x:610,y:40,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:60,y:372,w:60,h:20,triggerX:80},
+      {type:'spike_appear',x:180,y:372,w:60,h:20,triggerX:200},
+      {type:'spike_appear',x:300,y:372,w:60,h:20,triggerX:320},
+      {type:'spike_appear',x:420,y:372,w:60,h:20,triggerX:440},
+    ]
+  },
+  {
+    name:"Final Stretch", bg:'#1a1a00',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#999900',id:'f60'},
+      {x:70,y:320,w:70,h:16,color:'#999900',id:'fs60a'},
+      {x:210,y:260,w:70,h:16,color:'#999900',type:'moving',mx:210,my:260,dx:4,range:100,dir:1},
+      {x:400,y:200,w:70,h:16,color:'#999900',id:'fs60b'},
+      {x:550,y:140,w:80,h:16,color:'#999900'},
+    ],
+    goal:{x:585,y:90,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f60',triggerX:130},
+      {type:'floor_vanish',platformId:'fs60a',triggerX:110},
+      {type:'spike_appear',x:330,y:242,w:70,h:18,triggerX:320},
+      {type:'floor_vanish',platformId:'fs60b',triggerX:450},
+      {type:'gravity_flip',triggerX:480},
+      {type:'platform_reverse',triggerX:530},
+    ]
+  },
+  // ── LEVELS 61–70 (very hard) ──
+  {
+    name:"Chaos Theory", bg:'#100010',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#660066'},
+      {x:120,y:330,w:60,h:16,color:'#660066',type:'moving',mx:120,my:330,dx:5,range:120,dir:1},
+      {x:360,y:260,w:60,h:16,color:'#660066',type:'moving',mx:360,my:260,dx:-5,range:120,dir:1},
+      {x:580,y:190,w:80,h:16,color:'#660066'},
+    ],
+    goal:{x:615,y:140,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90},{type:'gravity_flip',triggerX:250},{type:'platform_reverse',triggerX:450}]
+  },
+  {
+    name:"Vanish & Flip", bg:'#000f10',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#115522',id:'c62'},
+      {x:0,y:390,w:700,h:30,color:'#115522',id:'f62'},
+      {x:80,y:80,w:70,h:16,color:'#115522',id:'vf62a'},
+      {x:260,y:180,w:70,h:16,color:'#115522',id:'vf62b'},
+      {x:440,y:80,w:70,h:16,color:'#115522'},
+      {x:570,y:30,w:80,h:16,color:'#115522'},
+    ],
+    goal:{x:605,y:-10,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:60},
+      {type:'floor_vanish',platformId:'vf62a',triggerX:110},
+      {type:'floor_vanish',platformId:'vf62b',triggerX:290},
+      {type:'gravity_flip',triggerX:480},
+    ]
+  },
+  {
+    name:"Spiky Flips", bg:'#1a0a00',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#664400',id:'c63'},
+      {x:0,y:390,w:700,h:30,color:'#664400'},
+      {x:100,y:100,w:80,h:16,color:'#664400'},{x:280,y:200,w:80,h:16,color:'#664400'},
+      {x:460,y:100,w:80,h:16,color:'#664400'},
+    ],
+    goal:{x:560,y:50,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:80},
+      {type:'spike_appear',x:180,y:372,w:100,h:20,triggerX:170},
+      {type:'spike_appear',x:380,y:372,w:80,h:20,triggerX:370},
+      {type:'gravity_flip',triggerX:400},
+    ]
+  },
+  {
+    name:"Platform Wars", bg:'#000a1a',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#001166'},
+      {x:60,y:310,w:80,h:16,color:'#001166',type:'moving',mx:60,my:310,dx:4,range:100,dir:1},
+      {x:280,y:240,w:80,h:16,color:'#001166',type:'moving',mx:280,my:240,dx:-4,range:100,dir:1},
+      {x:500,y:170,w:80,h:16,color:'#001166',type:'moving',mx:500,my:170,dx:4,range:80,dir:1},
+    ],
+    goal:{x:580,y:120,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'platform_reverse',triggerX:200},{type:'spike_appear',x:360,y:372,w:140,h:20,triggerX:350},{type:'platform_reverse',triggerX:520}]
+  },
+  {
+    name:"Everything Vanishes", bg:'#0f0f0f',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#444444',id:'f65'},
+      {x:60,y:330,w:70,h:16,color:'#444444',id:'ev65a'},
+      {x:180,y:270,w:70,h:16,color:'#444444',id:'ev65b'},
+      {x:300,y:210,w:70,h:16,color:'#444444',id:'ev65c'},
+      {x:420,y:150,w:70,h:16,color:'#444444',id:'ev65d'},
+      {x:540,y:90,w:80,h:16,color:'#444444'},
+    ],
+    goal:{x:570,y:40,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f65',triggerX:100},
+      {type:'floor_vanish',platformId:'ev65a',triggerX:90},
+      {type:'floor_vanish',platformId:'ev65b',triggerX:210},
+      {type:'floor_vanish',platformId:'ev65c',triggerX:330},
+      {type:'floor_vanish',platformId:'ev65d',triggerX:450},
+    ]
+  },
+  {
+    name:"Speed Demon", bg:'#200000',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#cc0000'},
+      {x:120,y:340,w:60,h:16,color:'#cc0000',type:'moving',mx:120,my:340,dx:6,range:140,dir:1},
+      {x:380,y:270,w:60,h:16,color:'#cc0000',type:'moving',mx:380,my:270,dx:-6,range:140,dir:1},
+      {x:580,y:200,w:80,h:16,color:'#cc0000'},
+    ],
+    goal:{x:615,y:150,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90},{type:'gravity_flip',triggerX:290}]
+  },
+  {
+    name:"Hell's Kitchen", bg:'#1a0500',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#993311',id:'f67'},
+      {x:70,y:320,w:65,h:16,color:'#993311',id:'hk67a'},
+      {x:200,y:260,w:65,h:16,color:'#993311',type:'moving',mx:200,my:260,dx:4,range:90,dir:1},
+      {x:380,y:200,w:65,h:16,color:'#993311',id:'hk67b'},
+      {x:510,y:140,w:65,h:16,color:'#993311',type:'moving',mx:510,my:140,dx:-4,range:90,dir:1},
+      {x:600,y:80,w:70,h:16,color:'#993311'},
+    ],
+    goal:{x:630,y:30,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f67',triggerX:110},
+      {type:'floor_vanish',platformId:'hk67a',triggerX:100},
+      {type:'spike_appear',x:310,y:242,w:70,h:18,triggerX:300},
+      {type:'floor_vanish',platformId:'hk67b',triggerX:420},
+      {type:'gravity_flip',triggerX:470},
+      {type:'spike_appear',x:590,y:122,w:10,h:18,triggerX:560},
+    ]
+  },
+  {
+    name:"Puzzle Box", bg:'#001020',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#113366'},
+      {x:80,y:300,w:70,h:16,color:'#113366'},{x:230,y:240,w:70,h:16,color:'#113366'},
+      {x:380,y:180,w:70,h:16,color:'#113366'},{x:520,y:120,w:80,h:16,color:'#113366'},
+    ],
+    goal:{x:555,y:70,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:30,y:372,w:50,h:20,triggerX:50},
+      {type:'spike_appear',x:150,y:372,w:80,h:20,triggerX:140},
+      {type:'spike_appear',x:300,y:372,w:80,h:20,triggerX:290},
+      {type:'spike_appear',x:450,y:372,w:70,h:20,triggerX:440},
+      {type:'platform_reverse',triggerX:360},
+    ]
+  },
+  {
+    name:"Dimension Shift", bg:'#050015',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#220066',id:'c69'},
+      {x:0,y:390,w:700,h:30,color:'#220066',id:'f69'},
+      {x:80,y:70,w:70,h:16,color:'#220066',id:'ds69a'},
+      {x:250,y:160,w:70,h:16,color:'#220066'},
+      {x:430,y:70,w:70,h:16,color:'#220066',id:'ds69b'},
+      {x:560,y:30,w:80,h:16,color:'#220066'},
+    ],
+    goal:{x:595,y:-10,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:60},
+      {type:'floor_vanish',platformId:'ds69a',triggerX:110},
+      {type:'spike_appear',x:180,y:372,w:70,h:20,triggerX:170},
+      {type:'floor_vanish',platformId:'ds69b',triggerX:460},
+      {type:'gravity_flip',triggerX:500},
+    ]
+  },
+  {
+    name:"Level 70 Boss", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#dd1111',id:'f70'},
+      {x:60,y:310,w:70,h:16,color:'#dd1111',id:'b70a'},
+      {x:190,y:250,w:70,h:16,color:'#dd1111',type:'moving',mx:190,my:250,dx:5,range:100,dir:1},
+      {x:390,y:190,w:70,h:16,color:'#dd1111',id:'b70b'},
+      {x:520,y:130,w:70,h:16,color:'#dd1111',type:'moving',mx:520,my:130,dx:-5,range:100,dir:1},
+      {x:600,y:70,w:70,h:16,color:'#dd1111'},
+    ],
+    goal:{x:630,y:20,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f70',triggerX:100},
+      {type:'floor_vanish',platformId:'b70a',triggerX:90},
+      {type:'spike_appear',x:310,y:232,w:80,h:18,triggerX:300},
+      {type:'floor_vanish',platformId:'b70b',triggerX:430},
+      {type:'gravity_flip',triggerX:460},
+      {type:'platform_reverse',triggerX:530},
+      {type:'spike_appear',x:590,y:112,w:10,h:18,triggerX:570},
+    ]
+  },
+  // ── LEVELS 71–80 (nightmare) ──
+  {
+    name:"Nightmare Begins", bg:'#0d0000',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#770000'},
+      {x:120,y:330,w:60,h:16,color:'#770000',type:'moving',mx:120,my:330,dx:6,range:150,dir:1},
+      {x:400,y:260,w:60,h:16,color:'#770000',type:'moving',mx:400,my:260,dx:-6,range:150,dir:1},
+      {x:580,y:190,w:80,h:16,color:'#770000'},
+    ],
+    goal:{x:615,y:140,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90},{type:'gravity_flip',triggerX:240},{type:'platform_reverse',triggerX:440}]
+  },
+  {
+    name:"Trap Symphony", bg:'#100d00',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#665500',id:'f72'},
+      {x:60,y:310,w:65,h:16,color:'#665500',id:'ts72a'},
+      {x:190,y:250,w:65,h:16,color:'#665500',id:'ts72b'},
+      {x:320,y:190,w:65,h:16,color:'#665500',type:'moving',mx:320,my:190,dx:4,range:90,dir:1},
+      {x:500,y:130,w:80,h:16,color:'#665500'},
+    ],
+    goal:{x:535,y:80,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f72',triggerX:100},
+      {type:'floor_vanish',platformId:'ts72a',triggerX:90},
+      {type:'floor_vanish',platformId:'ts72b',triggerX:220},
+      {type:'spike_appear',x:250,y:372,w:70,h:20,triggerX:240},
+      {type:'platform_reverse',triggerX:380},
+      {type:'gravity_flip',triggerX:460},
+    ]
+  },
+  {
+    name:"Falling Sky", bg:'#001510',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#115544',id:'c73'},
+      {x:0,y:390,w:700,h:30,color:'#115544',id:'f73'},
+      {x:80,y:70,w:70,h:16,color:'#115544',id:'fs73a'},
+      {x:260,y:180,w:70,h:16,color:'#115544'},
+      {x:440,y:70,w:70,h:16,color:'#115544',id:'fs73b'},
+      {x:570,y:20,w:80,h:16,color:'#115544'},
+    ],
+    goal:{x:605,y:-20,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:60},
+      {type:'floor_vanish',platformId:'fs73a',triggerX:110},
+      {type:'spike_appear',x:190,y:372,w:70,h:20,triggerX:180},
+      {type:'floor_vanish',platformId:'fs73b',triggerX:470},
+      {type:'gravity_flip',triggerX:510},
+    ]
+  },
+  {
+    name:"Void Walker", bg:'#050505',
+    platforms:[
+      {x:0,y:390,w:60,h:30,color:'#222222'},
+      {x:90,y:350,w:50,h:16,color:'#222222'},{x:190,y:300,w:50,h:16,color:'#222222'},
+      {x:290,y:250,w:50,h:16,color:'#222222'},{x:390,y:200,w:50,h:16,color:'#222222'},
+      {x:490,y:150,w:50,h:16,color:'#222222'},{x:580,y:100,w:80,h:16,color:'#222222'},
+    ],
+    goal:{x:610,y:50,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:60,y:372,w:30,h:20,triggerX:70},
+      {type:'spike_appear',x:140,y:372,w:50,h:20,triggerX:130},
+      {type:'spike_appear',x:240,y:372,w:50,h:20,triggerX:230},
+      {type:'spike_appear',x:340,y:372,w:50,h:20,triggerX:330},
+      {type:'spike_appear',x:440,y:372,w:50,h:20,triggerX:430},
+    ]
+  },
+  {
+    name:"Blaze of Glory", bg:'#1a0800',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#994400',id:'f75'},
+      {x:60,y:310,w:70,h:16,color:'#994400',id:'bg75a'},
+      {x:200,y:250,w:70,h:16,color:'#994400',type:'moving',mx:200,my:250,dx:5,range:110,dir:1},
+      {x:420,y:190,w:70,h:16,color:'#994400',id:'bg75b'},
+      {x:560,y:130,w:80,h:16,color:'#994400'},
+    ],
+    goal:{x:595,y:80,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f75',triggerX:110},
+      {type:'floor_vanish',platformId:'bg75a',triggerX:100},
+      {type:'spike_appear',x:330,y:232,w:90,h:18,triggerX:320},
+      {type:'floor_vanish',platformId:'bg75b',triggerX:460},
+      {type:'gravity_flip',triggerX:490},
+      {type:'platform_reverse',triggerX:540},
+    ]
+  },
+  {
+    name:"Mirror World", bg:'#00001a',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#001188'},
+      {x:60,y:320,w:80,h:16,color:'#001188',type:'moving',mx:60,my:320,dx:4,range:100,dir:1},
+      {x:280,y:250,w:80,h:16,color:'#001188',type:'moving',mx:280,my:250,dx:-4,range:100,dir:1},
+      {x:500,y:180,w:80,h:16,color:'#001188',type:'moving',mx:500,my:180,dx:4,range:100,dir:1},
+    ],
+    goal:{x:580,y:130,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'platform_reverse',triggerX:200},{type:'gravity_flip',triggerX:350},{type:'platform_reverse',triggerX:530}]
+  },
+  {
+    name:"Adrenaline Rush", bg:'#150005',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#880033'},
+      {x:120,y:330,w:60,h:16,color:'#880033',type:'moving',mx:120,my:330,dx:7,range:160,dir:1},
+      {x:430,y:255,w:60,h:16,color:'#880033',type:'moving',mx:430,my:255,dx:-7,range:160,dir:1},
+      {x:580,y:180,w:80,h:16,color:'#880033'},
+    ],
+    goal:{x:615,y:130,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[{type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90},{type:'spike_appear',x:280,y:372,w:150,h:20,triggerX:270}]
+  },
+  {
+    name:"Cursed Corridor", bg:'#100000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#880011',id:'f78'},
+      {x:60,y:310,w:70,h:16,color:'#880011',id:'cc78a'},
+      {x:190,y:250,w:70,h:16,color:'#880011',id:'cc78b'},
+      {x:320,y:190,w:70,h:16,color:'#880011',type:'moving',mx:320,my:190,dx:5,range:100,dir:1},
+      {x:510,y:130,w:80,h:16,color:'#880011'},
+    ],
+    goal:{x:545,y:80,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f78',triggerX:100},
+      {type:'floor_vanish',platformId:'cc78a',triggerX:90},
+      {type:'spike_appear',x:140,y:372,w:50,h:20,triggerX:130},
+      {type:'floor_vanish',platformId:'cc78b',triggerX:220},
+      {type:'spike_appear',x:260,y:232,w:60,h:18,triggerX:250},
+      {type:'gravity_flip',triggerX:430},
+    ]
+  },
+  {
+    name:"Blood Moon", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#cc2200',id:'f79'},
+      {x:70,y:320,w:65,h:16,color:'#cc2200',id:'bm79a'},
+      {x:200,y:260,w:65,h:16,color:'#cc2200',type:'moving',mx:200,my:260,dx:5,range:100,dir:1},
+      {x:400,y:200,w:65,h:16,color:'#cc2200',id:'bm79b'},
+      {x:540,y:140,w:65,h:16,color:'#cc2200',type:'moving',mx:540,my:140,dx:-5,range:100,dir:1},
+      {x:610,y:80,w:70,h:16,color:'#cc2200'},
+    ],
+    goal:{x:640,y:30,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f79',triggerX:120},
+      {type:'floor_vanish',platformId:'bm79a',triggerX:110},
+      {type:'spike_appear',x:320,y:242,w:80,h:18,triggerX:310},
+      {type:'floor_vanish',platformId:'bm79b',triggerX:440},
+      {type:'gravity_flip',triggerX:470},
+      {type:'spike_appear',x:600,y:122,w:10,h:18,triggerX:590},
+      {type:'platform_reverse',triggerX:560},
+    ]
+  },
+  {
+    name:"Level 80 Inferno", bg:'#1a0800',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#ee3300',id:'fi80'},
+      {x:50,y:310,w:70,h:16,color:'#ee3300',id:'in80a'},
+      {x:180,y:250,w:70,h:16,color:'#ee3300',type:'moving',mx:180,my:250,dx:6,range:120,dir:1},
+      {x:400,y:190,w:70,h:16,color:'#ee3300',id:'in80b'},
+      {x:540,y:130,w:70,h:16,color:'#ee3300',type:'moving',mx:540,my:130,dx:-6,range:120,dir:1},
+      {x:610,y:70,w:70,h:16,color:'#ee3300'},
+    ],
+    goal:{x:640,y:20,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'fi80',triggerX:100},
+      {type:'floor_vanish',platformId:'in80a',triggerX:90},
+      {type:'spike_appear',x:300,y:232,w:100,h:18,triggerX:290},
+      {type:'floor_vanish',platformId:'in80b',triggerX:440},
+      {type:'gravity_flip',triggerX:460},
+      {type:'platform_reverse',triggerX:520},
+      {type:'spike_appear',x:600,y:112,w:10,h:18,triggerX:590},
+    ]
+  },
+  // ── LEVELS 81–90 (extreme) ──
+  {
+    name:"Oblivion Gates", bg:'#050005',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#440044'},
+      {x:110,y:330,w:60,h:16,color:'#440044',type:'moving',mx:110,my:330,dx:7,range:160,dir:1},
+      {x:390,y:255,w:60,h:16,color:'#440044',type:'moving',mx:390,my:255,dx:-7,range:160,dir:1},
+      {x:580,y:185,w:80,h:16,color:'#440044'},
+    ],
+    goal:{x:615,y:135,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:30,h:20,triggerX:90},
+      {type:'gravity_flip',triggerX:220},
+      {type:'platform_reverse',triggerX:420},
+      {type:'spike_appear',x:450,y:372,w:130,h:20,triggerX:440},
+    ]
+  },
+  {
+    name:"Infinite Pain", bg:'#0a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#770000',id:'f82'},
+      {x:60,y:315,w:65,h:16,color:'#770000',id:'ip82a'},
+      {x:190,y:255,w:65,h:16,color:'#770000',id:'ip82b'},
+      {x:320,y:195,w:65,h:16,color:'#770000',type:'moving',mx:320,my:195,dx:6,range:120,dir:1},
+      {x:520,y:130,w:75,h:16,color:'#770000'},
+    ],
+    goal:{x:555,y:80,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f82',triggerX:100},
+      {type:'floor_vanish',platformId:'ip82a',triggerX:90},
+      {type:'spike_appear',x:140,y:372,w:50,h:20,triggerX:130},
+      {type:'floor_vanish',platformId:'ip82b',triggerX:220},
+      {type:'spike_appear',x:260,y:372,w:60,h:20,triggerX:250},
+      {type:'gravity_flip',triggerX:420},
+      {type:'platform_reverse',triggerX:490},
+    ]
+  },
+  {
+    name:"Anguish Avenue", bg:'#0d0500',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#662211'},
+      {x:110,y:330,w:60,h:16,color:'#662211'},{x:230,y:270,w:60,h:16,color:'#662211'},
+      {x:350,y:210,w:60,h:16,color:'#662211'},{x:470,y:150,w:60,h:16,color:'#662211'},
+      {x:575,y:90,w:75,h:16,color:'#662211'},
+    ],
+    goal:{x:610,y:40,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:30,h:20,triggerX:90},
+      {type:'spike_appear',x:170,y:372,w:60,h:20,triggerX:160},
+      {type:'spike_appear',x:290,y:372,w:60,h:20,triggerX:280},
+      {type:'spike_appear',x:410,y:372,w:60,h:20,triggerX:400},
+      {type:'spike_appear',x:530,y:372,w:45,h:20,triggerX:520},
+    ]
+  },
+  {
+    name:"Torment Towers", bg:'#001018',
+    platforms:[
+      {x:0,y:0,w:700,h:30,color:'#113344',id:'c84'},
+      {x:0,y:390,w:700,h:30,color:'#113344',id:'f84'},
+      {x:80,y:70,w:70,h:16,color:'#113344',id:'tt84a'},
+      {x:260,y:180,w:70,h:16,color:'#113344'},
+      {x:440,y:70,w:70,h:16,color:'#113344',id:'tt84b'},
+      {x:570,y:20,w:80,h:16,color:'#113344'},
+    ],
+    goal:{x:605,y:-20,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'gravity_flip',triggerX:60},
+      {type:'floor_vanish',platformId:'tt84a',triggerX:110},
+      {type:'spike_appear',x:190,y:372,w:70,h:20,triggerX:180},
+      {type:'gravity_flip',triggerX:310},
+      {type:'floor_vanish',platformId:'tt84b',triggerX:470},
+      {type:'gravity_flip',triggerX:520},
+    ]
+  },
+  {
+    name:"Cruel Countdown", bg:'#150000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#990000',id:'f85'},
+      {x:60,y:315,w:65,h:16,color:'#990000',id:'cc85a'},
+      {x:180,y:255,w:65,h:16,color:'#990000',id:'cc85b'},
+      {x:300,y:195,w:65,h:16,color:'#990000',id:'cc85c'},
+      {x:420,y:135,w:65,h:16,color:'#990000',id:'cc85d'},
+      {x:540,y:75,w:80,h:16,color:'#990000'},
+    ],
+    goal:{x:575,y:25,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f85',triggerX:100},
+      {type:'floor_vanish',platformId:'cc85a',triggerX:90},
+      {type:'floor_vanish',platformId:'cc85b',triggerX:210},
+      {type:'floor_vanish',platformId:'cc85c',triggerX:330},
+      {type:'floor_vanish',platformId:'cc85d',triggerX:450},
+      {type:'spike_appear',x:240,y:372,w:80,h:20,triggerX:230},
+    ]
+  },
+  {
+    name:"Wrath of Hell", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#dd0000',id:'wh86'},
+      {x:60,y:315,w:70,h:16,color:'#dd0000',id:'wh86a'},
+      {x:200,y:255,w:70,h:16,color:'#dd0000',type:'moving',mx:200,my:255,dx:7,range:130,dir:1},
+      {x:430,y:195,w:70,h:16,color:'#dd0000',id:'wh86b'},
+      {x:570,y:135,w:70,h:16,color:'#dd0000',type:'moving',mx:570,my:135,dx:-7,range:130,dir:1},
+    ],
+    goal:{x:640,y:85,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'wh86',triggerX:110},
+      {type:'floor_vanish',platformId:'wh86a',triggerX:100},
+      {type:'spike_appear',x:330,y:237,w:100,h:18,triggerX:320},
+      {type:'floor_vanish',platformId:'wh86b',triggerX:470},
+      {type:'gravity_flip',triggerX:500},
+      {type:'platform_reverse',triggerX:560},
+    ]
+  },
+  {
+    name:"Darkness Falls", bg:'#000000',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#111111'},
+      {x:120,y:330,w:60,h:16,color:'#111111',type:'moving',mx:120,my:330,dx:7,range:170,dir:1},
+      {x:420,y:255,w:60,h:16,color:'#111111',type:'moving',mx:420,my:255,dx:-7,range:170,dir:1},
+      {x:580,y:185,w:80,h:16,color:'#111111'},
+    ],
+    goal:{x:615,y:135,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90},
+      {type:'gravity_flip',triggerX:230},
+      {type:'spike_appear',x:290,y:372,w:130,h:20,triggerX:280},
+      {type:'platform_reverse',triggerX:450},
+    ]
+  },
+  {
+    name:"Soul Shredder", bg:'#0a0010',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#440055',id:'f88'},
+      {x:60,y:315,w:65,h:16,color:'#440055',id:'ss88a'},
+      {x:180,y:255,w:65,h:16,color:'#440055',id:'ss88b'},
+      {x:300,y:195,w:65,h:16,color:'#440055',type:'moving',mx:300,my:195,dx:6,range:110,dir:1},
+      {x:510,y:130,w:80,h:16,color:'#440055'},
+    ],
+    goal:{x:545,y:80,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f88',triggerX:100},
+      {type:'floor_vanish',platformId:'ss88a',triggerX:90},
+      {type:'spike_appear',x:130,y:372,w:50,h:20,triggerX:120},
+      {type:'floor_vanish',platformId:'ss88b',triggerX:210},
+      {type:'spike_appear',x:250,y:372,w:50,h:20,triggerX:240},
+      {type:'gravity_flip',triggerX:380},
+      {type:'platform_reverse',triggerX:460},
+      {type:'spike_appear',x:500,y:372,w:10,h:20,triggerX:490},
+    ]
+  },
+  {
+    name:"Apocalypse Door", bg:'#100008',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#550033',id:'f89'},
+      {x:60,y:315,w:70,h:16,color:'#550033',id:'ap89a'},
+      {x:190,y:255,w:70,h:16,color:'#550033',type:'moving',mx:190,my:255,dx:8,range:150,dir:1},
+      {x:430,y:195,w:70,h:16,color:'#550033',id:'ap89b'},
+      {x:580,y:135,w:70,h:16,color:'#550033',type:'moving',mx:580,my:135,dx:-8,range:150,dir:1},
+      {x:640,y:75,w:60,h:16,color:'#550033'},
+    ],
+    goal:{x:660,y:25,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f89',triggerX:110},
+      {type:'floor_vanish',platformId:'ap89a',triggerX:100},
+      {type:'spike_appear',x:310,y:237,w:120,h:18,triggerX:300},
+      {type:'floor_vanish',platformId:'ap89b',triggerX:470},
+      {type:'gravity_flip',triggerX:500},
+      {type:'platform_reverse',triggerX:550},
+      {type:'spike_appear',x:620,y:117,w:20,h:18,triggerX:610},
+    ]
+  },
+  {
+    name:"Gate of Hell 90", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#ff2200',id:'gh90'},
+      {x:50,y:315,w:70,h:16,color:'#ff2200',id:'gh90a'},
+      {x:180,y:255,w:70,h:16,color:'#ff2200',type:'moving',mx:180,my:255,dx:8,range:150,dir:1},
+      {x:400,y:195,w:70,h:16,color:'#ff2200',id:'gh90b'},
+      {x:540,y:135,w:70,h:16,color:'#ff2200',type:'moving',mx:540,my:135,dx:-8,range:150,dir:1},
+      {x:620,y:75,w:60,h:16,color:'#ff2200'},
+    ],
+    goal:{x:640,y:25,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'gh90',triggerX:100},
+      {type:'floor_vanish',platformId:'gh90a',triggerX:90},
+      {type:'spike_appear',x:300,y:237,w:100,h:18,triggerX:290},
+      {type:'floor_vanish',platformId:'gh90b',triggerX:450},
+      {type:'gravity_flip',triggerX:470},
+      {type:'platform_reverse',triggerX:530},
+      {type:'spike_appear',x:610,y:117,w:10,h:18,triggerX:600},
+      {type:'gravity_flip',triggerX:580},
+    ]
+  },
+  // ── LEVELS 91–99 (legendary) ──
+  {
+    name:"Legendary Run", bg:'#0d0010',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#660088'},
+      {x:120,y:330,w:60,h:16,color:'#660088',type:'moving',mx:120,my:330,dx:8,range:180,dir:1},
+      {x:460,y:255,w:60,h:16,color:'#660088',type:'moving',mx:460,my:255,dx:-8,range:180,dir:1},
+      {x:580,y:185,w:80,h:16,color:'#660088'},
+    ],
+    goal:{x:615,y:135,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:40,h:20,triggerX:90},
+      {type:'gravity_flip',triggerX:200},
+      {type:'spike_appear',x:300,y:372,w:160,h:20,triggerX:290},
+      {type:'platform_reverse',triggerX:450},
+      {type:'gravity_flip',triggerX:530},
+    ]
+  },
+  {
+    name:"Ghost Protocol", bg:'#0a0a10',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#333355',id:'f92'},
+      {x:60,y:315,w:65,h:16,color:'#333355',id:'gp92a'},
+      {x:180,y:255,w:65,h:16,color:'#333355',id:'gp92b'},
+      {x:300,y:195,w:65,h:16,color:'#333355',id:'gp92c'},
+      {x:420,y:135,w:65,h:16,color:'#333355',id:'gp92d'},
+      {x:545,y:75,w:80,h:16,color:'#333355'},
+    ],
+    goal:{x:580,y:25,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f92',triggerX:100},
+      {type:'floor_vanish',platformId:'gp92a',triggerX:90},
+      {type:'spike_appear',x:130,y:372,w:50,h:20,triggerX:120},
+      {type:'floor_vanish',platformId:'gp92b',triggerX:210},
+      {type:'floor_vanish',platformId:'gp92c',triggerX:330},
+      {type:'spike_appear',x:360,y:177,w:60,h:18,triggerX:350},
+      {type:'floor_vanish',platformId:'gp92d',triggerX:450},
+      {type:'gravity_flip',triggerX:500},
+    ]
+  },
+  {
+    name:"Void's Edge", bg:'#000000',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#220022'},
+      {x:110,y:330,w:60,h:16,color:'#220022',type:'moving',mx:110,my:330,dx:9,range:190,dir:1},
+      {x:470,y:250,w:60,h:16,color:'#220022',type:'moving',mx:470,my:250,dx:-9,range:190,dir:1},
+      {x:580,y:180,w:80,h:16,color:'#220022'},
+    ],
+    goal:{x:615,y:130,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:30,h:20,triggerX:90},
+      {type:'gravity_flip',triggerX:180},
+      {type:'platform_reverse',triggerX:360},
+      {type:'spike_appear',x:350,y:372,w:120,h:20,triggerX:340},
+      {type:'gravity_flip',triggerX:530},
+    ]
+  },
+  {
+    name:"The Reckoning", bg:'#150000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#990022',id:'f94'},
+      {x:60,y:315,w:65,h:16,color:'#990022',id:'tr94a'},
+      {x:180,y:255,w:65,h:16,color:'#990022',type:'moving',mx:180,my:255,dx:8,range:150,dir:1},
+      {x:400,y:195,w:65,h:16,color:'#990022',id:'tr94b'},
+      {x:530,y:135,w:65,h:16,color:'#990022',type:'moving',mx:530,my:135,dx:-8,range:150,dir:1},
+      {x:610,y:75,w:70,h:16,color:'#990022'},
+    ],
+    goal:{x:645,y:25,w:30,h:40}, spawnX:15, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'f94',triggerX:110},
+      {type:'floor_vanish',platformId:'tr94a',triggerX:100},
+      {type:'spike_appear',x:310,y:237,w:90,h:18,triggerX:300},
+      {type:'floor_vanish',platformId:'tr94b',triggerX:450},
+      {type:'gravity_flip',triggerX:470},
+      {type:'platform_reverse',triggerX:530},
+      {type:'spike_appear',x:600,y:117,w:10,h:18,triggerX:590},
+      {type:'gravity_flip',triggerX:580},
+    ]
+  },
+  {
+    name:"Armageddon Path", bg:'#1a1000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#bb5500',id:'ap95'},
+      {x:50,y:315,w:65,h:16,color:'#bb5500',id:'ap95a'},
+      {x:180,y:255,w:65,h:16,color:'#bb5500',id:'ap95b'},
+      {x:310,y:195,w:65,h:16,color:'#bb5500',type:'moving',mx:310,my:195,dx:8,range:140,dir:1},
+      {x:510,y:135,w:65,h:16,color:'#bb5500',id:'ap95c'},
+      {x:590,y:75,w:80,h:16,color:'#bb5500'},
+    ],
+    goal:{x:625,y:25,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'ap95',triggerX:100},
+      {type:'floor_vanish',platformId:'ap95a',triggerX:80},
+      {type:'floor_vanish',platformId:'ap95b',triggerX:210},
+      {type:'spike_appear',x:240,y:372,w:70,h:20,triggerX:230},
+      {type:'gravity_flip',triggerX:400},
+      {type:'floor_vanish',platformId:'ap95c',triggerX:560},
+      {type:'platform_reverse',triggerX:550},
+    ]
+  },
+  {
+    name:"Devil's Throne 96", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#ee0000'},
+      {x:110,y:325,w:65,h:16,color:'#ee0000',type:'moving',mx:110,my:325,dx:9,range:200,dir:1},
+      {x:480,y:250,w:65,h:16,color:'#ee0000',type:'moving',mx:480,my:250,dx:-9,range:200,dir:1},
+      {x:580,y:180,w:80,h:16,color:'#ee0000'},
+    ],
+    goal:{x:615,y:130,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:30,h:20,triggerX:90},
+      {type:'gravity_flip',triggerX:180},
+      {type:'spike_appear',x:310,y:372,w:170,h:20,triggerX:300},
+      {type:'platform_reverse',triggerX:440},
+      {type:'gravity_flip',triggerX:550},
+    ]
+  },
+  {
+    name:"Final Judgment", bg:'#0d0005',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#660044',id:'fj97'},
+      {x:55,y:315,w:65,h:16,color:'#660044',id:'fj97a'},
+      {x:180,y:255,w:65,h:16,color:'#660044',id:'fj97b'},
+      {x:305,y:195,w:65,h:16,color:'#660044',type:'moving',mx:305,my:195,dx:9,range:160,dir:1},
+      {x:530,y:135,w:65,h:16,color:'#660044',id:'fj97c'},
+      {x:610,y:75,w:75,h:16,color:'#660044'},
+    ],
+    goal:{x:645,y:25,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'fj97',triggerX:100},
+      {type:'floor_vanish',platformId:'fj97a',triggerX:85},
+      {type:'spike_appear',x:130,y:372,w:50,h:20,triggerX:120},
+      {type:'floor_vanish',platformId:'fj97b',triggerX:210},
+      {type:'spike_appear',x:250,y:372,w:55,h:20,triggerX:240},
+      {type:'gravity_flip',triggerX:380},
+      {type:'floor_vanish',platformId:'fj97c',triggerX:580},
+      {type:'platform_reverse',triggerX:550},
+      {type:'gravity_flip',triggerX:600},
+    ]
+  },
+  {
+    name:"Lucifer's Leap", bg:'#180000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#cc0011',id:'ll98'},
+      {x:50,y:315,w:65,h:16,color:'#cc0011',id:'ll98a'},
+      {x:180,y:255,w:65,h:16,color:'#cc0011',type:'moving',mx:180,my:255,dx:9,range:180,dir:1},
+      {x:430,y:195,w:65,h:16,color:'#cc0011',id:'ll98b'},
+      {x:570,y:135,w:65,h:16,color:'#cc0011',type:'moving',mx:570,my:135,dx:-9,range:180,dir:1},
+      {x:640,y:70,w:60,h:16,color:'#cc0011'},
+    ],
+    goal:{x:660,y:20,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'ll98',triggerX:100},
+      {type:'floor_vanish',platformId:'ll98a',triggerX:80},
+      {type:'spike_appear',x:310,y:237,w:120,h:18,triggerX:300},
+      {type:'floor_vanish',platformId:'ll98b',triggerX:480},
+      {type:'gravity_flip',triggerX:500},
+      {type:'platform_reverse',triggerX:560},
+      {type:'spike_appear',x:630,y:117,w:10,h:18,triggerX:620},
+      {type:'gravity_flip',triggerX:600},
+    ]
+  },
+  {
+    name:"Second to Last", bg:'#0a0000',
+    platforms:[
+      {x:0,y:390,w:80,h:30,color:'#ff1100'},
+      {x:110,y:325,w:65,h:16,color:'#ff1100',type:'moving',mx:110,my:325,dx:10,range:210,dir:1},
+      {x:500,y:248,w:65,h:16,color:'#ff1100',type:'moving',mx:500,my:248,dx:-10,range:210,dir:1},
+      {x:580,y:178,w:80,h:16,color:'#ff1100'},
+    ],
+    goal:{x:615,y:128,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'spike_appear',x:80,y:372,w:30,h:20,triggerX:90},
+      {type:'gravity_flip',triggerX:170},
+      {type:'spike_appear',x:320,y:372,w:180,h:20,triggerX:310},
+      {type:'platform_reverse',triggerX:450},
+      {type:'gravity_flip',triggerX:540},
+      {type:'spike_appear',x:560,y:372,w:20,h:20,triggerX:555},
+    ]
+  },
+  // ── LEVEL 100 (THE FINAL BOSS) ──
+  {
+    name:"😈 THE FINAL DEVIL", bg:'#1a0000',
+    platforms:[
+      {x:0,y:390,w:700,h:30,color:'#ff0000',id:'boss100'},
+      {x:50,y:315,w:70,h:16,color:'#ff0000',id:'b100a'},
+      {x:180,y:255,w:70,h:16,color:'#ff0000',type:'moving',mx:180,my:255,dx:10,range:200,dir:1},
+      {x:430,y:195,w:70,h:16,color:'#ff0000',id:'b100b'},
+      {x:570,y:135,w:70,h:16,color:'#ff0000',type:'moving',mx:570,my:135,dx:-10,range:200,dir:1},
+      {x:640,y:75,w:60,h:16,color:'#ff0000'},
+    ],
+    goal:{x:655,y:25,w:30,h:40}, spawnX:10, spawnY:340,
+    traps:[
+      {type:'floor_vanish',platformId:'boss100',triggerX:100},
+      {type:'floor_vanish',platformId:'b100a',triggerX:80},
+      {type:'spike_appear',x:130,y:372,w:50,h:20,triggerX:120},
+      {type:'spike_appear',x:310,y:237,w:120,h:18,triggerX:300},
+      {type:'floor_vanish',platformId:'b100b',triggerX:480},
+      {type:'gravity_flip',triggerX:500},
+      {type:'platform_reverse',triggerX:550},
+      {type:'gravity_flip',triggerX:590},
+      {type:'spike_appear',x:630,y:117,w:25,h:18,triggerX:620},
+    ]
+  },
+];
+
+function loadLevel(idx) {
+  const def = LEVEL_DEFS[idx];
+  platforms = def.platforms.map(p => ({...p, visible:true, vanishing:false, vanishTimer:0}));
+  traps = def.traps.map(t => ({...t, triggered:false}));
+  spikes = [];
+  gravFlipped = false;
+  player.x = def.spawnX; player.y = def.spawnY;
+  player.vx = 0; player.vy = 0;
+  player.onGround = false; player.dead = false;
+  player.blinking = false; player.blinkTimer = 0;
+  player.respawnX = def.spawnX; player.respawnY = def.spawnY;
+  player.facingRight = true;
+  currentLevel = idx;
+  showGameMsg('LEVEL ' + (idx+1) + ': ' + def.name, 2000);
+  document.getElementById('hud-level').textContent = 'LEVEL ' + (idx+1);
+}
+
+function startGame() {
+  sessionDeaths = 0;
+  gameTimer = 0;
+  frameCount = 0;
+  currentLevel = 0;
+  gameRunning = true;
+  showScreen('screen-game');
+  updateLivesHUD();
+  loadLevel(0);
+  requestAnimationFrame(gameLoop);
+}
+
+// ─── GAME LOOP ───
+function gameLoop() {
+  if (!gameRunning) return;
+  update();
+  draw();
+  frameCount++;
+  if (frameCount % 6 === 0) {
+    gameTimer += 0.1;
+    document.getElementById('hud-timer').textContent = gameTimer.toFixed(1) + 's';
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+const GRAVITY = 0.55, SPEED = 3.5, JUMP = -12;
+
+function rect(a, b) {
+  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+}
+
+function update() {
+  if (player.dead) return;
+
+  player.vx = 0;
+  if (isLeft())  { player.vx = -SPEED; player.facingRight = false; }
+  if (isRight()) { player.vx =  SPEED; player.facingRight = true;  }
+
+  const grav = gravFlipped ? -GRAVITY : GRAVITY;
+  player.vy += grav;
+  player.x += player.vx;
+  player.y += player.vy;
+  player.onGround = false;
+
+  // Moving platforms
+  let moveDelta = 0;
+  platforms.forEach(p => {
+    if (p.type !== 'moving' || !p.visible) return;
+    const prev = p.x;
+    p.x += p.dx * p.dir;
+    if (p.x > p.mx + p.range || p.x < p.mx - p.range) p.dir *= -1;
+    const pb = {x:player.x,y:player.y,w:player.w,h:player.h};
+    const pl = {x:p.x,y:p.y,w:p.w,h:p.h};
+    if (rect(pb, pl) && !gravFlipped && player.y+player.h <= p.y+8 && player.vy >= 0) moveDelta = p.x - prev;
+  });
+  player.x += moveDelta;
+
+  // Platform collisions
+  platforms.forEach(p => {
+    if (!p.visible) return;
+    const pb = {x:player.x,y:player.y,w:player.w,h:player.h};
+    const pl = {x:p.x,y:p.y,w:p.w,h:p.h};
+    if (!rect(pb, pl)) return;
+    if (!gravFlipped) {
+      if (player.vy >= 0 && player.y+player.h-player.vy <= p.y+5) {
+        player.y = p.y - player.h; player.vy = 0; player.onGround = true;
+        if (isJump()) player.vy = JUMP;
+      } else if (player.vy < 0 && player.y-player.vy >= p.y+p.h-5) {
+        player.y = p.y+p.h; player.vy = 0;
+      } else {
+        player.x = player.x < p.x ? p.x - player.w : p.x + p.w;
+      }
+    } else {
+      if (player.vy <= 0 && player.y-player.vy >= p.y+p.h-5) {
+        player.y = p.y+p.h; player.vy = 0; player.onGround = true;
+        if (isJump()) player.vy = -JUMP;
+      } else if (player.vy > 0 && player.y+player.h-player.vy <= p.y+5) {
+        player.y = p.y - player.h; player.vy = 0;
+      } else {
+        player.x = player.x < p.x ? p.x - player.w : p.x + p.w;
+      }
+    }
+  });
+
+  // Vanishing platforms
+  platforms.forEach(p => {
+    if (!p.vanishing) return;
+    p.vanishTimer++;
+    if (p.vanishTimer >= 30) p.visible = false;
+  });
+
+  player.x = Math.max(0, Math.min(W - player.w, player.x));
+  if (player.y > H + 60 || player.y < -80) { killPlayer(); return; }
+
+  // Traps
+  traps.forEach(t => {
+    if (t.triggered) return;
+    if (player.x > t.triggerX) { t.triggered = true; executeTrap(t); }
+  });
+
+  // Spike collision
+  spikes.forEach(s => {
+    if (rect({x:player.x,y:player.y,w:player.w,h:player.h}, s)) killPlayer();
+  });
+
+  // Blink
+  if (player.blinking) { player.blinkTimer--; if (player.blinkTimer <= 0) player.blinking = false; }
+
+  // Goal
+  const goal = LEVEL_DEFS[currentLevel].goal;
+  if (rect({x:player.x,y:player.y,w:player.w,h:player.h}, {x:goal.x,y:goal.y,w:goal.w,h:goal.h})) {
+    player.dead = true;
+    levelsCleared++;
+    saveStats();
+    const nextIdx = currentLevel + 1;
+    if (nextIdx >= LEVEL_DEFS.length) {
+      gameRunning = false;
+      showGameMsg('🏆 YOU WIN!', 1000);
+      setTimeout(() => {
+        document.getElementById('win-stats').textContent =
+          `All levels cleared! Deaths: ${sessionDeaths}x · Time: ${gameTimer.toFixed(1)}s`;
+        showOverlay('overlay-win');
+      }, 1200);
+    } else {
+      showGameMsg('✨ LEVEL CLEAR!', 1200);
+      setTimeout(() => loadLevel(nextIdx), 1300);
+    }
+  }
+}
+
+function killPlayer() {
+  if (player.dead) return;
+  player.dead = true;
+  lives--;
+  sessionDeaths++;
+  totalDeaths++;
+  document.getElementById('hud-deaths').textContent = '💀 ' + sessionDeaths;
+  saveStats();
+  updateLivesHUD();
+  shake(12);
+  showGameMsg('HAHAHA! 😈', 700);
+
+  if (lives <= 0) {
+    setTimeout(() => { showOverlay('overlay-gameover'); }, 900);
+  } else {
+    setTimeout(() => {
+      loadLevel(currentLevel);
+      player.blinking = true;
+      player.blinkTimer = 90;
+    }, 700);
+  }
+}
+
+function executeTrap(trap) {
+  if (trap.type === 'floor_vanish') {
+    const p = platforms.find(pl => pl.id === trap.platformId);
+    if (p) { p.vanishing = true; p.vanishTimer = 0; showGameMsg('WATCH THE FLOOR! 😈', 800); shake(6); }
+  } else if (trap.type === 'spike_appear') {
+    spikes.push({x:trap.x, y:trap.y, w:trap.w, h:trap.h});
+    showGameMsg('SPIKE TRAP! 😈', 700); shake(8);
+  } else if (trap.type === 'platform_reverse') {
+    platforms.forEach(p => { if (p.type === 'moving') p.dx = -p.dx; });
+    showGameMsg('REVERSED! 😈', 800); shake(6);
+  } else if (trap.type === 'gravity_flip') {
+    gravFlipped = !gravFlipped;
+    player.vy = gravFlipped ? 10 : -10;
+    showGameMsg('GRAVITY FLIPPED! 😈', 1100); shake(10);
+  }
+}
+
+let msgClear;
+function showGameMsg(text, dur) {
+  const el = document.getElementById('game-msg');
+  el.textContent = text; el.classList.add('show');
+  clearTimeout(msgClear);
+  msgClear = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function shake(power = 8) {
+  let f = 0;
+  const iv = setInterval(() => {
+    shakeX = (Math.random()-0.5)*power;
+    shakeY = (Math.random()-0.5)*power;
+    if (++f > 10) { clearInterval(iv); shakeX = shakeY = 0; }
+  }, 30);
+}
+
+// ─── DRAW ───
+function drawSpike(x, y, w, h) {
+  const cnt = Math.max(1, Math.floor(w / 14));
+  const sw = w / cnt;
+  ctx.fillStyle = '#ff3333';
+  ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8;
+  for (let i = 0; i < cnt; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + i*sw, y+h);
+    ctx.lineTo(x + i*sw + sw/2, y);
+    ctx.lineTo(x + i*sw + sw, y+h);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawPlayer() {
+  if (player.blinking && Math.floor(player.blinkTimer/5)%2===0) return;
+  const {x, y} = player;
+  ctx.fillStyle = '#e8c88a';
+  ctx.fillRect(x+4, y+10, 20, 18);
+  ctx.fillStyle = '#f0d8a0';
+  ctx.beginPath(); ctx.arc(x+14, y+8, 10, 0, Math.PI*2); ctx.fill();
+  const ex = player.facingRight ? x+17 : x+8;
+  ctx.fillStyle = '#000'; ctx.fillRect(ex, y+5, 4, 4);
+  ctx.fillStyle = '#ff0000'; ctx.fillRect(ex+1, y+6, 2, 2);
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x+14, y+11, 4, 0, Math.PI); ctx.stroke();
+  ctx.fillStyle = '#4488ff';
+  ctx.fillRect(x+5, y+26, 8, 8); ctx.fillRect(x+15, y+26, 8, 8);
+}
+
+function draw() {
+  const def = LEVEL_DEFS[currentLevel];
+  ctx.save(); ctx.translate(shakeX, shakeY);
+  ctx.fillStyle = def.bg; ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  ctx.fillStyle = '#ffffff15';
+  for (let i = 0; i < 30; i++) ctx.fillRect((i*211.3)%W, (i*137.7)%H, 2, 2);
+
+  if (gravFlipped) {
+    ctx.fillStyle = '#ff440022'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#ff6644aa'; ctx.font = '12px monospace';
+    ctx.fillText('⚠ GRAVITY FLIPPED', 8, 16);
+  }
+
+  // Platforms
+  platforms.forEach(p => {
+    if (!p.visible) return;
+    const a = p.vanishing ? Math.max(0.1, 1 - p.vanishTimer/30) : 1;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color || '#882222';
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = '#ffffff28'; ctx.fillRect(p.x, p.y, p.w, 3);
+    ctx.globalAlpha = 1;
+  });
+
+  // Spikes
+  spikes.forEach(s => drawSpike(s.x, s.y, s.w, s.h));
+
+  // Goal
+  const g = def.goal;
+  const glow = (Math.sin(Date.now()*0.005)+1)*0.5;
+  ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 16 + glow*10;
+  ctx.fillStyle = `rgba(255,220,0,${0.5+glow*0.3})`;
+  ctx.fillRect(g.x, g.y, g.w, g.h);
+  ctx.shadowBlur = 0;
+  ctx.font = '22px serif'; ctx.fillText('🚪', g.x-3, g.y+30);
+
+  // Player
+  if (!player.dead) drawPlayer();
+
+  // Death flash
+  if (player.dead && lives > 0) {
+    ctx.fillStyle = 'rgba(255,0,0,0.25)'; ctx.fillRect(0,0,W,H);
+  }
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════
+//  EVENT BINDINGS
+// ═══════════════════════════════════════
+document.getElementById('btn-connect').addEventListener('click', connectWallet);
+document.getElementById('btn-disconnect').addEventListener('click', disconnectWallet);
+document.getElementById('btn-checkin').addEventListener('click', doCheckIn);
+document.getElementById('btn-mint').addEventListener('click', mintLifePass);
+document.getElementById('btn-mint-again').addEventListener('click', () => {
+  hideOverlay('overlay-gameover');
+  mintLifePass();
+});
+document.getElementById('btn-gameover-hub').addEventListener('click', () => {
+  hideOverlay('overlay-gameover');
+  gameRunning = false;
+  showScreen('screen-hub');
+  updateHubUI();
+});
+document.getElementById('btn-play-again').addEventListener('click', () => {
+  hideOverlay('overlay-win');
+  lives = 3; updateLivesHUD();
+  startGame();
+});
+document.getElementById('btn-win-hub').addEventListener('click', () => {
+  hideOverlay('overlay-win');
+  gameRunning = false;
+  showScreen('screen-hub');
+  updateHubUI();
+});
+
+setupTouchControls();
+</script>
+</body>
+</html>
