@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Level Iblis — Base Chain</title>
+<title>Devil land — Base Chain</title>
 <style>
   :root {
     --red: #ff3333;
@@ -287,8 +287,8 @@
 ══════════════════════════════════════ -->
 <div id="screen-connect" class="screen active">
   <div class="logo-wrap">
-    <div class="logo-title">LEVEL IBLIS</div>
-    <div class="logo-sub">ONCHAIN PLATFORMER</div>
+    <div class="logo-title">Devil land</div>
+    <div class="logo-sub">BASE GAMEFI</div>
   </div>
 
   <div class="chain-badge">
@@ -299,10 +299,10 @@
   <div class="card">
     <div class="card-title">Fitur Game</div>
     <ul class="feature-list">
-      <li><span>💀</span><span>Platform dengan <strong>jebakan tersembunyi</strong> — 5 level</span></li>
-      <li><span>❤️</span><span><strong>3 Nyawa</strong> per sesi (mint NFT gratis)</span></li>
+      <li><span>💀</span><span>Platform with <strong>hidden trap</strong> — 5 level</span></li>
+      <li><span>❤️</span><span><strong>3 Lives</strong> per session (free NFT mint)</span></li>
       <li><span>📅</span><span><strong>Daily Check-in</strong> onchain (gas fee only)</span></li>
-      <li><span>🔗</span><span>100% <strong>onchain</strong> di Base blockchain</span></li>
+      <li><span>🔗</span><span>100% <strong>onchain</strong> on Base blockchain</span></li>
     </ul>
   </div>
 
@@ -311,8 +311,8 @@
   </button>
 
   <div style="font-size:11px;color:var(--muted);text-align:center;max-width:300px;line-height:1.6">
-    Mendukung MetaMask, Coinbase Wallet, dan wallet EVM lainnya.
-    Pastikan terhubung ke <strong style="color:#6699ff">Base Mainnet</strong>.
+    Support MetaMask, Coinbase Wallet, and other EVM wallet.
+    Make sure it is connected to <strong style="color:#6699ff">Base Mainnet</strong>.
   </div>
 </div>
 
@@ -321,22 +321,22 @@
 ══════════════════════════════════════ -->
 <div id="screen-hub" class="screen">
   <div class="hub-header">
-    <h2>😈 IBLIS HUB</h2>
+    <h2>😈 Devil HUB</h2>
     <p id="hub-wallet" class="wallet-addr">0x0000...0000</p>
   </div>
 
   <div class="stat-grid">
     <div class="stat-box">
       <div class="val" id="stat-deaths">0</div>
-      <div class="lbl">TOTAL MATI</div>
+      <div class="lbl">Die total</div>
     </div>
     <div class="stat-box">
       <div class="val" id="stat-streak">0</div>
-      <div class="lbl">STREAK HARI</div>
+      <div class="lbl">DAYS STREAK</div>
     </div>
     <div class="stat-box">
       <div class="val" id="stat-sessions">0</div>
-      <div class="lbl">SESI MAIN</div>
+      <div class="lbl">PLAY SESSION</div>
     </div>
     <div class="stat-box">
       <div class="val" id="stat-levels">0</div>
@@ -351,7 +351,7 @@
     <div id="checkin-streak-text" style="font-size:14px;color:var(--gold)">Streak: 0 hari</div>
     <div class="checkin-status" id="checkin-status">Belum check-in hari ini</div>
     <button class="btn btn-gold" id="btn-checkin">
-      <span>✅</span> CHECK-IN SEKARANG
+      <span>✅</span> CHECK-IN NOW
     </button>
   </div>
 
@@ -360,12 +360,12 @@
     <div class="nft-preview">😈<br><span style="font-size:14px;color:var(--muted)">Life Pass NFT</span></div>
     <div class="nft-title">🎟 MINT LIFE PASS NFT</div>
     <div class="nft-desc">
-      Dapatkan <strong style="color:#ff6666">3 nyawa</strong> untuk bermain.<br>
-      NFT ini gratis — kamu hanya membayar gas fee Base network.
+      Get <strong style="color:#ff6666">3 lives</strong> for playing.<br>
+      This NFT is free — you only pay the Base network gas fee..
     </div>
     <div class="gas-note">⛽ ~0.00001 ETH gas fee (Base network)</div>
     <button class="btn btn-primary" id="btn-mint">
-      <span>🎟</span> MINT & MAIN (FREE)
+      <span>🎟</span> MINT & PLAY (FREE)
     </button>
   </div>
 
@@ -420,10 +420,10 @@
 <div class="overlay" id="overlay-gameover">
   <div class="modal">
     <div class="modal-icon">💀</div>
-    <h2>NYAWA HABIS</h2>
-    <p>Kamu sudah mati terlalu banyak.<br>Mint <strong>Life Pass NFT</strong> baru untuk mendapatkan 3 nyawa lagi.<br><span style="color:#88aa88;font-size:12px">Gratis — hanya gas fee</span></p>
-    <button class="btn btn-primary" id="btn-mint-again"><span>🎟</span> MINT LAGI & LANJUT</button>
-    <button class="btn btn-outline" id="btn-gameover-hub">Kembali ke Hub</button>
+    <h2>life runs out</h2>
+    <p>You've died too many times.<br>Mint <strong>Life Pass NFT</strong>just to get 3 more lives.<br><span style="color:#88aa88;font-size:12px">Gratis — hanya gas fee</span></p>
+    <button class="btn btn-primary" id="btn-mint-again"><span>🎟</span> MINT AGAIN</button>
+    <button class="btn btn-outline" id="btn-gameover-hub">Back to Hub</button>
   </div>
 </div>
 
@@ -431,8 +431,8 @@
 <div class="overlay" id="overlay-loading">
   <div class="modal" style="gap:20px">
     <div class="modal-icon" id="loading-icon">🔵</div>
-    <h2 id="loading-title">MENGHUBUNGKAN</h2>
-    <p id="loading-desc">Membuka wallet Anda...</p>
+    <h2 id="loading-title">Connecting</h2>
+    <p id="loading-desc">open your wallet...</p>
     <div class="spinner"></div>
   </div>
 </div>
@@ -441,10 +441,10 @@
 <div class="overlay" id="overlay-win">
   <div class="modal">
     <div class="modal-icon">🏆</div>
-    <h2>KAMU MENANG!</h2>
-    <p id="win-stats">Selamat! Kamu berhasil menyelesaikan semua level.</p>
-    <button class="btn btn-gold" id="btn-play-again">⚔ MAIN LAGI</button>
-    <button class="btn btn-outline" id="btn-win-hub">Kembali ke Hub</button>
+    <h2>KAMU WIN!</h2>
+    <p id="win-stats">Congratulations! You have successfully completed all levels.</p>
+    <button class="btn btn-gold" id="btn-play-again">⚔ Play again</button>
+    <button class="btn btn-outline" id="btn-win-hub">Back to Hub</button>
   </div>
 </div>
 
@@ -520,10 +520,10 @@ function hideLoading() { hideOverlay('overlay-loading'); }
 // ═══════════════════════════════════════
 async function connectWallet() {
   if (!window.ethereum) {
-    showToast('❌ Wallet tidak ditemukan. Install MetaMask atau Coinbase Wallet!');
+    showToast('❌ Wallet not found. Install MetaMask or Coinbase Wallet!');
     return;
   }
-  showLoading('MENGHUBUNGKAN', 'Membuka wallet Anda...', '🔵');
+  showLoading('MENGHUBUNGKAN', 'openned your wallet...', '🔵');
   try {
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     walletAddress = accounts[0];
@@ -565,7 +565,7 @@ function onWalletConnected() {
   document.getElementById('hud-wallet-short').textContent = shortAddr(walletAddress);
   updateHubUI();
   showScreen('screen-hub');
-  showToast('✅ Wallet terhubung: ' + shortAddr(walletAddress));
+  showToast('✅ Wallet connected: ' + shortAddr(walletAddress));
 
   window.ethereum.on('accountsChanged', (accounts) => {
     if (accounts.length === 0) disconnectWallet();
@@ -595,7 +595,7 @@ async function doCheckIn() {
     showToast('✅ Sudah check-in hari ini!');
     return;
   }
-  showLoading('DAILY CHECK-IN', 'Mengirim transaksi onchain...', '📅');
+  showLoading('DAILY CHECK-IN', 'send transaction onchain...', '📅');
   try {
     // Simulate onchain tx (gas fee only — send 0 ETH to self)
     const txHash = await window.ethereum.request({
@@ -619,17 +619,17 @@ async function doCheckIn() {
     lastCheckIn = todayStr();
     saveStats();
     updateHubUI();
-    showToast('🔥 Check-in berhasil! Streak: ' + checkInStreak + ' hari');
+    showToast('🔥 Check-in succes! Streak: ' + checkInStreak + ' hari');
   } catch (err) {
     hideLoading();
-    if (err.code === 4001) showToast('❌ Transaksi ditolak');
-    else showToast('❌ Check-in gagal: ' + (err.message || ''));
+    if (err.code === 4001) showToast('❌ Transaksi rejected');
+    else showToast('❌ Check-in fail: ' + (err.message || ''));
   }
 }
 
 function encodeCheckin() {
   // Encode "LEVELIBLIS_CHECKIN" as hex (for data field)
-  return Array.from('LEVELIBLIS_CHECKIN').map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+  return Array.from('Devilland_CHECKIN').map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
 }
 
 // ═══════════════════════════════════════
@@ -637,7 +637,7 @@ function encodeCheckin() {
 // ═══════════════════════════════════════
 async function mintLifePass() {
   if (!walletAddress) return;
-  showLoading('MINT NFT', 'Minting Life Pass NFT ke wallet Anda...', '🎟');
+  showLoading('MINT NFT', 'Minting Life Pass NFT to your wallet...', '🎟');
   try {
     // In production: call your NFT contract's mint() function
     // Here we simulate with a 0 ETH tx carrying mint data
@@ -657,17 +657,17 @@ async function mintLifePass() {
     saveStats();
     updateHubUI();
     updateLivesHUD();
-    showToast('🎟 Life Pass NFT berhasil di-mint! 3 nyawa diberikan.');
+    showToast('🎟 Life Pass NFT successfully minted! 3 lives awarded.');
     startGame();
   } catch (err) {
     hideLoading();
-    if (err.code === 4001) showToast('❌ Mint dibatalkan');
-    else showToast('❌ Mint gagal: ' + (err.message || ''));
+    if (err.code === 4001) showToast('❌ Mint rejected');
+    else showToast('❌ Mint failled: ' + (err.message || ''));
   }
 }
 
 function encodeMint() {
-  return Array.from('LEVELIBLIS_MINT_LIFEPASS').map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+  return Array.from('DEVILLAND_MINT_LIFEPASS').map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
 }
 
 // ═══════════════════════════════════════
@@ -755,7 +755,7 @@ function isJump()  { return keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || 
 // ─── LEVELS ───
 const LEVEL_DEFS = [
   {
-    name:"Lompat Saja!", bg:'#0d0010',
+    name:"Just Jump!", bg:'#0d0010',
     platforms:[
       {x:0,y:390,w:700,h:30,color:'#882222',id:'floor'},
       {x:180,y:310,w:120,h:16,color:'#882222'},
@@ -765,7 +765,7 @@ const LEVEL_DEFS = [
     traps:[{type:'floor_vanish',platformId:'floor',triggerX:280}]
   },
   {
-    name:"Aman? Yakin?", bg:'#000d1a',
+    name:"Safe? Sure?", bg:'#000d1a',
     platforms:[
       {x:0,y:390,w:700,h:30,color:'#223355'},
       {x:130,y:320,w:100,h:16,color:'#223355'},
@@ -779,7 +779,7 @@ const LEVEL_DEFS = [
     ]
   },
   {
-    name:"Percayalah...", bg:'#001a00',
+    name:"Believe...", bg:'#001a00',
     platforms:[
       {x:0,y:390,w:140,h:30,color:'#225522'},
       {x:550,y:390,w:150,h:30,color:'#225522'},
@@ -790,7 +790,7 @@ const LEVEL_DEFS = [
     traps:[{type:'platform_reverse',triggerX:260}]
   },
   {
-    name:"ATAS = BAWAH!", bg:'#1a0a00',
+    name:"Up = down!", bg:'#1a0a00',
     platforms:[
       {x:0,y:0,w:700,h:30,color:'#553322',id:'ceil'},
       {x:0,y:390,w:700,h:30,color:'#553322',id:'floor2'},
@@ -802,7 +802,7 @@ const LEVEL_DEFS = [
     traps:[{type:'gravity_flip',triggerX:290}]
   },
   {
-    name:"SELAMAT MENDERITA", bg:'#1a0000',
+    name:"good luck suffering", bg:'#1a0000',
     platforms:[
       {x:0,y:390,w:700,h:30,color:'#661111',id:'ff'},
       {x:80,y:330,w:80,h:16,color:'#661111'},
