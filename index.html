@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Devil land — Base Chain</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 <style>
   :root {
     --red: #ff3333;
@@ -773,11 +774,39 @@ function encodeStr(s) {
 // ═══════════════════════════════════════
 const LIFEPASS_CA = '0x579707b2Cb0A18ACcB72e963d13d21534D998c1B';
 
+// ABI minimal untuk fungsi claim() dari ThirdWeb DropERC1155
+const DROP_ABI = [
+  "function claim(address _receiver, uint256 _tokenId, uint256 _quantity, address _currency, uint256 _pricePerToken, (bytes32[] proof, uint256 quantityLimitPerWallet, uint256 pricePerToken, address currency) _allowlistProof, bytes _data) payable"
+];
+
+// Native ETH address yang digunakan ThirdWeb
+const NATIVE_TOKEN_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+// Fungsi helper: encode calldata untuk claim() menggunakan ethers.js
+async function encodeClaimData(receiverAddress, tokenId = 0, quantity = 1) {
+  const iface = new ethers.utils.Interface(DROP_ABI);
+  const allowlistProof = {
+    proof: [],
+    quantityLimitPerWallet: ethers.constants.MaxUint256,
+    pricePerToken: ethers.constants.MaxUint256,
+    currency: NATIVE_TOKEN_ADDRESS,
+  };
+  return iface.encodeFunctionData('claim', [
+    receiverAddress,
+    tokenId,
+    quantity,
+    NATIVE_TOKEN_ADDRESS,
+    0, // pricePerToken = 0 (free)
+    allowlistProof,
+    '0x',
+  ]);
+}
+
 async function mintLifePass() {
   if (!walletAddress) return;
   showLoading('MINT LIFE PASS', 'Minting Life Pass NFT...', '🎟');
   try {
-    const mintData = '0x40d097c3'; // mint() function selector
+    const mintData = await encodeClaimData(walletAddress, 0, 1);
     await window.ethereum.request({ method: 'eth_sendTransaction', params: [{
       from: walletAddress,
       to: LIFEPASS_CA,
@@ -806,7 +835,7 @@ async function mintTierNFT(tierIdx) {
   if (!walletAddress) return;
   showLoading('MINT ' + tier.name.toUpperCase() + ' NFT', 'Minting ' + tier.emoji + ' ' + tier.name + ' NFT...', tier.emoji);
   try {
-    const mintData = '0x40d097c3';
+    const mintData = await encodeClaimData(walletAddress, 0, 1);
     await window.ethereum.request({ method: 'eth_sendTransaction', params: [{
       from: walletAddress,
       to: tier.ca,
